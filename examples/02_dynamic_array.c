@@ -18,13 +18,17 @@ display_nums (da *nums)
 int
 main ()
 {
+  arena ar = {0};
   da nums = {0};
   unsigned int i, count, n;
+
+  arinit (&ar, 128);
 
   printf ("How many numbers?\n");
   scanf ("%d", &count);
 
-  dainit (&nums, sizeof (int), count);
+  /* dainit2 (&nums, sizeof (int), count); */
+  dainit (&nums, &ar, sizeof (int), count);
   printf ("Array capacity: %d\n", nums.capacity);
 
   printf ("Enter those numbers:\n");
@@ -34,6 +38,8 @@ main ()
       scanf ("%d", &n);
       daappend (&nums, &n);
     }
+
+  display_nums (&nums);
 
   printf ("Adding 69, 420 and 25...\n");
 
@@ -55,7 +61,7 @@ main ()
 
   /* Insert at Ith position of array. */
   n = 25;
-  if (clomy_dainsert (&nums, &n, 2) == 1)
+  if (clomy_dainsert (&nums, &n, 1) == 1)
     {
       fprintf (stderr, "Failed to add %d to array\n", n);
       goto cleanup;
@@ -69,7 +75,10 @@ main ()
   display_nums (&nums);
 
 cleanup:
+  /* We don't need to explicitly fold the array when
+     allocated inside arena */
   dafold (&nums);
+  arfold (&ar);
 
   return 0;
 }
