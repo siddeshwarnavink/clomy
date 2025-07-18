@@ -16,13 +16,14 @@
 struct clomy_arena
 {
   void *ptr;
-  unsigned char *bytemap;
+  unsigned char *bitmap;
   unsigned int size;
   unsigned int capacity;
 };
 typedef struct clomy_arena clomy_arena;
 
-/* Initialize the arena. Returns 0 if success and 1 if failed. */
+/* Initialize the arena. Size must be divisible by 8. Returns 0 if success and 1
+if failed. */
 int clomy_arinit (clomy_arena *ar, unsigned int size);
 
 /* Allocate memory inside arena.  */
@@ -116,9 +117,8 @@ clomy_arinit (clomy_arena *ar, unsigned int size)
   if (!ar->ptr)
     return 1;
 
-  /* TODO: Make this bitwise */
-  ar->bytemap = (unsigned char *) malloc (size * sizeof (unsigned char));
-  if (!ar->bytemap)
+  ar->bitmap = (unsigned char *) malloc ((size +7) / 8);
+  if (!ar->bitmap)
     return 1;
 
   ar->size = 0;
@@ -140,13 +140,14 @@ clomy_aralloc (clomy_arena *ar, unsigned int size)
       if (found_size >= size)
         {
           for (j = start; j < start + size; ++j)
-              ar->bytemap[j] = 1;
+            ar->bitmap[j / 8] |= 1 << (j & 7);
 
           ar->size += size;
           return (void *) ar->ptr + start + size;
         }
 
-      if (!ar->bytemap[i])
+
+      if (ar->bitmap[i / 8] & (1 << (i & 7)) ? 0 : 1)
         {
           if (found_size < 1)
             start = i;
@@ -169,7 +170,7 @@ clomy_arfree (clomy_arena *ar, void *ptr, unsigned int size)
 
   for ( ; i < end; ++i)
     {
-      ar->bytemap[i] = 0;
+      ar->bitmap[i / 8] &= ~(1 << (i & 7));
     }
 
   ar->size -= size;
@@ -181,7 +182,7 @@ clomy_arclear (clomy_arena *ar)
   unsigned int i;
   for (i = 0; i < ar->capacity; ++i)
     {
-      ar->bytemap[i] = 0;
+      ar->bitmap[i / 8] &= ~(1 << (i & 7));
     }
 
   ar->size = 0;
@@ -196,10 +197,10 @@ clomy_arfold (clomy_arena *ar)
       ar->ptr = (void *) 0;
     }
 
-  if (ar->bytemap)
+  if (ar->bitmap)
     {
-      free (ar->bytemap);
-      ar->bytemap = (void *) 0;
+      free (ar->bitmap);
+      ar->bitmap = (void *) 0;
     }
 
   ar->size = 0;

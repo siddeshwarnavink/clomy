@@ -10,7 +10,7 @@ arena_palloc (arena *ar)
 {
   unsigned int i;
   for (i = 0; i < ar->capacity; ++i)
-    printf ("%u-", ar->bytemap[i]);
+    printf ("%u-", ar->bitmap[i]);
 
   printf ("\n");
 }
