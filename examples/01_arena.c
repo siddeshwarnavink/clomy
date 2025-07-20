@@ -1,70 +1,72 @@
 #include <stdio.h>
-#include <string.h>
 
 #define CLOMY_IMPLEMENTATION
+#define CLOMY_ARENA_DEFAULT_CAPACITY 64
 #include "../clomy.h"
 
-/* Print byte allocation of arena for debugging. */
-void
-arena_palloc (arena *ar)
-{
-  unsigned int i;
-  for (i = 0; i < ar->capacity; ++i)
-    printf ("%u-", ar->bitmap[i]);
-
-  printf ("\n");
-}
+void _debugarena (arena *ar);
 
 int
 main ()
 {
   arena ar = {0};
-  char *name, *full_name;
-  int *age;
+  char *buf, *name = (char *) aralloc (&ar, 16 * sizeof (char));
+  int *age = (int *) aralloc (&ar, sizeof (int));
 
-  arinit (&ar, 16);
-
-  name = (char *) aralloc (&ar, 8);
-  printf ("Allocate Name 8 bytes %p\n", name);
-  arena_palloc (&ar);
-  printf ("\n");
-
-  age = (int *) aralloc (&ar, 4);
-  printf ("Allocate Age 4 bytes %p\n", age);
-  arena_palloc (&ar);
-  printf ("\n");
-
-  strcpy (name, "Sid");
-  *age = 21;
-
-  printf ("Hello, %s of age %d!\n", name, *age);
-
-  printf ("Free name\n");
-  arfree (&ar, name, 8);
-  arena_palloc (&ar);
-  printf ("\n");
-
-  full_name = (char *) aralloc (&ar, 16);
-  printf ("Allocate Full Name 12 bytes %p\n", full_name);
-  if (!full_name)
+  if (!age)
     {
-      printf ("Successfully failed to allocate!\n\n");
+      fprintf (stderr, "Failed to allocate age\n");
+      goto cleanup;
     }
 
-  printf ("Clear arena\n");
-  arclear (&ar);
-  arena_palloc (&ar);
-  printf ("\n");
+  if (!name)
+    {
+      fprintf (stderr, "Failed to allocate name\n");
+      goto cleanup;
+    }
 
-  full_name = (char *) aralloc (&ar, 12);
-  printf ("Allocate Full Name 12 bytes %p\n", full_name);
-  arena_palloc (&ar);
-  printf ("\n");
+  _debugarena (&ar);
 
-  strcpy (full_name, "Siddeshwar");
-  printf ("Full name is %s\n", full_name);
+  printf ("What is your name?\n");
+  scanf ("%s", name);
 
+  printf ("What is your age?\n");
+  scanf ("%d", age);
+
+  printf ("Hello %s of age %d!\n", name, *age);
+
+  printf ("Freeing name...\n");
+  arfree (&ar, name);
+  _debugarena (&ar);
+
+  printf ("Allocating 20 bytes buf...\n");
+  buf = aralloc (&ar, 20);
+  if (!buf)
+    {
+      fprintf (stderr, "Failed to allocate buf\n");
+      goto cleanup;
+    }
+  _debugarena (&ar);
+  strcpy (buf, "Hello, World!");
+  printf ("buf=\"%s\"\n", buf);
+
+cleanup:
   arfold (&ar);
 
   return 0;
 }
+
+void
+_debugarena (arena *ar)
+{
+  archunk *cnk = ar->head;
+
+  printf ("\n-------------------\n");
+  while (cnk)
+    {
+      printf ("Size: %d, Capacity %d\n", cnk->size, cnk->capacity);
+      cnk = cnk->next;
+    }
+  printf ("-------------------\n\n");
+}
+
