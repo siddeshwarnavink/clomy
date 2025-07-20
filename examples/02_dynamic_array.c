@@ -18,17 +18,20 @@ display_nums (da *nums)
 int
 main ()
 {
-  arena ar = {0};
-  da nums = {0};
+  arena ar = { 0 };
+  da nums = { 0 };
   unsigned int i, count, n;
-
-  arinit (&ar, 128);
 
   printf ("How many numbers?\n");
   scanf ("%d", &count);
 
-  /* dainit2 (&nums, sizeof (int), count); */
-  dainit (&nums, &ar, sizeof (int), count);
+  if (dainit (&nums, &ar, sizeof (int), count) == 1)
+  /* if (dainit2 (&nums, sizeof (int), count) == 1) */
+    {
+      fprintf (stderr, "Failed to initialize dynamic array.\n");
+      goto cleanup;
+    }
+
   printf ("Array capacity: %d\n", nums.capacity);
 
   printf ("Enter those numbers:\n");
@@ -43,7 +46,6 @@ main ()
 
   printf ("Adding 69, 420 and 25...\n");
 
-  /* Insert at beginning of array. */
   n = 69;
   if (dapush (&nums, &n) == 1)
     {
@@ -51,7 +53,6 @@ main ()
       goto cleanup;
     }
 
-  /* Insert at end of array. */
   n = 420;
   if (daappend (&nums, &n) == 1)
     {
@@ -59,7 +60,6 @@ main ()
       goto cleanup;
     }
 
-  /* Insert at Ith position of array. */
   n = 25;
   if (clomy_dainsert (&nums, &n, 1) == 1)
     {
@@ -77,7 +77,7 @@ main ()
 cleanup:
   /* We don't need to explicitly fold the array when
      allocated inside arena */
-  dafold (&nums);
+  /* dafold (&nums); */
   arfold (&ar);
 
   return 0;
