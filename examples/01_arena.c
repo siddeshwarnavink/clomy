@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #define CLOMY_IMPLEMENTATION
-#define CLOMY_ARENA_DEFAULT_CAPACITY 64
+#define CLOMY_ARENA_CAPACITY 8
 #include "../clomy.h"
 
 void _debugarena (arena *ar);
@@ -9,9 +9,9 @@ void _debugarena (arena *ar);
 int
 main ()
 {
-  arena ar = {0};
-  char *buf, *name = (char *) aralloc (&ar, 16 * sizeof (char));
-  int *age = (int *) aralloc (&ar, sizeof (int));
+  arena ar = { 0 };
+  char *buf, *name = (char *)aralloc (&ar, 16 * sizeof (char));
+  int *age = (int *)aralloc (&ar, sizeof (int));
 
   if (!age)
     {
@@ -36,7 +36,7 @@ main ()
   printf ("Hello %s of age %d!\n", name, *age);
 
   printf ("Freeing name...\n");
-  arfree (&ar, name);
+  arfree (name);
   _debugarena (&ar);
 
   printf ("Allocating 20 bytes buf...\n");
@@ -60,7 +60,6 @@ void
 _debugarena (arena *ar)
 {
   archunk *cnk = ar->head;
-
   printf ("\n-------------------\n");
   while (cnk)
     {
@@ -69,4 +68,3 @@ _debugarena (arena *ar)
     }
   printf ("-------------------\n\n");
 }
-

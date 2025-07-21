@@ -14,9 +14,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef CLOMY_ARENA_DEFAULT_CAPACITY
-#define CLOMY_ARENA_DEFAULT_CAPACITY (8 * 1024)
-#endif // not CLOMY_ARENA_DEFAULT_CAPACITY
+#ifndef CLOMY_ARENA_CAPACITY
+#define CLOMY_ARENA_CAPACITY (8 * 1024)
+#endif // not CLOMY_ARENA_CAPACITY
+
+#define CLOMY_ALIGN_UP(n, a) (((n) + ((a) - 1)) & ~((a) - 1))
 
 struct clomy_archunk
 {
@@ -26,6 +28,13 @@ struct clomy_archunk
   unsigned char data[];
 };
 typedef struct clomy_archunk clomy_archunk;
+
+struct clomy_aralloc_hdr
+{
+  struct clomy_archunk *cnk;
+  unsigned short size;
+};
+typedef struct clomy_aralloc_hdr clomy_aralloc_hdr;
 
 struct clomy_arena
 {
@@ -37,7 +46,7 @@ typedef struct clomy_arena clomy_arena;
 void *clomy_aralloc (clomy_arena *ar, unsigned int size);
 
 /* Free the memory chunk inside arena. */
-void clomy_arfree (clomy_arena *ar, void *value);
+void clomy_arfree (void *value);
 
 /* Free the entire arena. */
 void clomy_arfold (clomy_arena *ar);
@@ -132,95 +141,85 @@ _clomy_newarchunk (unsigned int size)
 void *
 clomy_aralloc (clomy_arena *ar, unsigned int size)
 {
-  clomy_archunk *ptr, *newcnk;
-  unsigned int dfsize = 0;
+  clomy_archunk *cnk;
+  clomy_aralloc_hdr *hdr;
+  unsigned int cnk_size;
+
+  size = CLOMY_ALIGN_UP (size, 8);
 
   /* Initialize arena */
   if (!ar->head)
     {
-      ar->head = _clomy_newarchunk (CLOMY_ARENA_DEFAULT_CAPACITY);
-      ar->tail = ar->head;
+      ar->head = _clomy_newarchunk (CLOMY_ARENA_CAPACITY);
       if (!ar->head)
         return (void *)0;
+
+      ar->tail = ar->head;
     }
 
   /* Trying first-fit exising chunk. */
-  ptr = ar->head;
-  do
+  cnk = ar->head;
+  cnk_size = size + sizeof (clomy_aralloc_hdr);
+  while (cnk)
     {
-      /* TODO: Implement folding adjacent memory. */
-      dfsize = ptr->capacity - ptr->size;
-      if (dfsize >= size)
-        break;
+      if (cnk->capacity - cnk->size >= cnk_size)
+        {
+          hdr = (clomy_aralloc_hdr *)(cnk->data + cnk->size);
+          hdr->cnk = cnk;
+          hdr->size = size;
 
-      ptr = ptr->next;
+          cnk->size += cnk_size;
+          return (void *)((char *)hdr + sizeof (clomy_aralloc_hdr));
+        }
+
+      cnk = cnk->next;
     }
-  while (ptr->next);
 
   /* Allocate new memory. */
-  if (dfsize < size)
-    {
-      ptr = _clomy_newarchunk (CLOMY_ARENA_DEFAULT_CAPACITY);
-      if (!ptr)
-        return (void *)0;
-      ar->tail->next = ptr;
-      ar->tail = ptr;
+  cnk_size = cnk_size > CLOMY_ARENA_CAPACITY ? cnk_size : CLOMY_ARENA_CAPACITY;
+  cnk = _clomy_newarchunk (cnk_size);
+  if (!cnk)
+    return (void *)0;
 
-      dfsize = ptr->capacity - ptr->size;
-    }
+  cnk->size = cnk_size;
 
-  newcnk = (clomy_archunk *)&ptr->data[dfsize - size - sizeof (clomy_archunk)];
-  newcnk->size = size;
-  newcnk->capacity = size;
-  newcnk->next = (void *)0;
-  ar->tail->next = newcnk;
-  ar->tail = newcnk;
+  ar->tail->next = cnk;
+  ar->tail = cnk;
 
-  ptr->capacity = dfsize - size - sizeof (clomy_archunk);
+  hdr = (clomy_aralloc_hdr *)cnk->data;
+  hdr->cnk = cnk;
+  hdr->size = size;
 
-  return newcnk->data;
+  return (void *)((char *)hdr + sizeof (clomy_aralloc_hdr));
 }
 
 void
-clomy_arfree (clomy_arena *ar, void *value)
+clomy_arfree (void *value)
 {
-  clomy_archunk *ptr = ar->head;
-  while (ptr)
-    {
-      if (ptr->data == value)
-        {
-          ptr->size = 0;
-          break;
-        }
-      ptr = ptr->next;
-    }
+  clomy_archunk *cnk;
+  clomy_aralloc_hdr *hdr;
+
+  if (!value)
+    return;
+
+  hdr = (clomy_aralloc_hdr *)((char *)value - sizeof (clomy_aralloc_hdr));
+  cnk = hdr->cnk;
+  cnk->size -= hdr->size + sizeof (clomy_aralloc_hdr);
 }
 
 void
 clomy_arfold (clomy_arena *ar)
 {
-  unsigned char prevzero = 0;
-  clomy_archunk *ptr = ar->head, *ptr2;
-
-  if (!ar->head)
-    return;
-
-  do
+  clomy_archunk *cnk = ar->head, *next;
+  while (cnk)
     {
-      if (!prevzero && ptr->size == 0)
-        {
-          ptr2 = ptr->next;
-          free (ptr);
-          ptr = ptr2;
-          prevzero = 1;
-        }
-      else
-        {
-          ptr = ptr->next;
-          prevzero = 0;
-        }
+      next = cnk->next;
+      free (cnk);
+      cnk = next;
     }
-  while (ptr->next);
+
+  ar->head = (void *)0;
+  ar->tail = (void *)0;
 }
 
 /*----------------------------------------------------------------------*/
@@ -267,7 +266,7 @@ clomy_dacap (clomy_da *da, unsigned int capacity)
         {
           /* TODO: Implement realloc in arena. */
           memcpy (newarr, da->data, da->capacity * da->data_size);
-          arfree (da->ar, da->data);
+          arfree (da->data);
         }
     }
   else
@@ -332,8 +331,8 @@ clomy_dainsert (clomy_da *da, void *data, unsigned int i)
   if (i > da->size)
     return 1;
 
-  if (clomy_dagrow(da))
-      return 1;
+  if (clomy_dagrow (da))
+    return 1;
 
   pos = da->data + i * da->data_size;
   memmove ((char *)pos + da->data_size, pos, (da->size - i) * da->data_size);
@@ -358,7 +357,7 @@ clomy_dafold (clomy_da *da)
   if (da->data)
     {
       if (da->ar)
-        clomy_arfree (da->ar, da->data);
+        clomy_arfree (da->data);
       else
         free (da->data);
       da->data = (void *)0;
