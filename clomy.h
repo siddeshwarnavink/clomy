@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifndef CLOMY_ARENA_CAPACITY
 #define CLOMY_ARENA_CAPACITY (8 * 1024)
@@ -100,6 +101,39 @@ void clomy_dafold (clomy_da *da);
 
 /*----------------------------------------------------------------------*/
 
+struct clomy_htdata
+{
+  int key;
+  struct clomy_htdata *next;
+  unsigned char data[];
+};
+typedef struct clomy_htdata clomy_htdata;
+
+struct clomy_ht
+{
+  clomy_arena *ar;
+  clomy_htdata **data;
+  unsigned int data_size;
+  unsigned int size;
+  unsigned int capacity;
+  unsigned int a;
+};
+typedef struct clomy_ht clomy_ht;
+
+unsigned int _clomy_hash_int (clomy_ht *ht, unsigned int x);
+
+/* Initialize hash table with unsigned integer key. */
+int clomy_htinit (clomy_ht *ht, clomy_arena *ar, unsigned int capacity,
+                  unsigned int dsize);
+
+/* Put value in key in hash table. */
+int clomy_htput (clomy_ht *ht, int key, void *value);
+
+/* Get value for key hash table. */
+void *clomy_htget (clomy_ht *ht, int key);
+
+/*----------------------------------------------------------------------*/
+
 #ifndef CLOMY_NO_SHORT_NAMES
 
 #define arena clomy_arena
@@ -117,6 +151,12 @@ void clomy_dafold (clomy_da *da);
 #define dainsert clomy_dainsert
 #define dadel clomy_dadel
 #define dafold clomy_dafold
+
+#define ht clomy_ht
+#define htdata clomy_htdata
+#define htinit clomy_htinit
+#define htput clomy_htput
+#define htget clomy_htget
 
 #endif /* not CLOMY_NO_SHORT_NAMES */
 
@@ -362,6 +402,81 @@ clomy_dafold (clomy_da *da)
         free (da->data);
       da->data = (void *)0;
     }
+}
+
+/*----------------------------------------------------------------------*/
+
+unsigned int
+_clomy_hash_int (clomy_ht *ht, unsigned int x)
+{
+  unsigned int p = ht->a ^ x;
+  return p % ht->capacity;
+}
+
+int
+clomy_htinit (clomy_ht *ht, clomy_arena *ar, unsigned int capacity,
+              unsigned int dsize)
+{
+  srand ((unsigned)time (NULL));
+  ht->a = ((unsigned int)rand () << 1) | 1;
+
+  ht->ar = ar;
+  ht->data_size = dsize;
+  ht->size = 0;
+  ht->capacity = CLOMY_ALIGN_UP (capacity, 8);
+
+  ht->data = clomy_aralloc (ar, capacity * sizeof (clomy_htdata *));
+  if (!ht->data)
+    return 1;
+
+  return 0;
+}
+
+int
+clomy_htput (clomy_ht *ht, int key, void *value)
+{
+  clomy_htdata *data;
+  unsigned int i = _clomy_hash_int (ht, key);
+
+  data = clomy_aralloc (ht->ar, sizeof (clomy_htdata) + ht->data_size);
+  if (!data)
+    return 1;
+
+  data->key = key;
+  data->next = (void *)0;
+  memcpy (data->data, value, ht->data_size);
+
+  if (!ht->data[i])
+    {
+      ht->data[i] = data;
+    }
+  else
+    {
+      data->next = ht->data[i];
+      ht->data[i] = data;
+    }
+
+  return 0;
+}
+
+void *
+clomy_htget (clomy_ht *ht, int key)
+{
+  clomy_htdata *ptr;
+  unsigned int i = _clomy_hash_int (ht, key);
+
+  ptr = ht->data[i];
+  if (!ptr)
+    return (void *)0;
+
+  while (ptr)
+    {
+      if (ptr->key == key)
+        return ptr->data;
+      ptr = ptr->next;
+    }
+
+  return (void *)0;
 }
 
 #endif /* CLOMY_IMPLEMENTATION */
