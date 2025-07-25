@@ -10,30 +10,36 @@ main ()
 {
   arena ar = { 0 };
   ht nummap = { 0 };
-  int val, *ptr;
+  unsigned int i, val, *ptr;
+
+  srand ((unsigned)time (NULL));
 
   htinit (&nummap, &ar, 16, sizeof (int));
+  /* htinit2 (&nummap, 16, sizeof (int)); */
 
   printf ("Inserting numbers...\n");
+  for (i = 0; i < 100; ++i)
+    {
+      val = rand () % 100;
+      htput (&nummap, i, &val);
+    }
 
-  val = 2;
-  htput (&nummap, 1, &val);
-
-  val = 4;
-  htput (&nummap, 2, &val);
-
-  val = 6;
-  htput (&nummap, 3, &val);
+  printf ("Value of 2 is ");
+  ptr = (unsigned int *)htget (&nummap, 2);
+  if (ptr)
+    {
+      printf ("%d\n", *ptr);
+      printf ("Deleting value of 2...\n");
+      htdel (&nummap, 2);
+    }
+  else
+    {
+      printf ("Not found!\n");
+    }
 
   _debught (&nummap);
 
-  printf ("Value of 2 is ");
-  ptr = (int *)htget (&nummap, 2);
-  if (ptr)
-    printf ("%d\n", *ptr);
-  else
-    printf ("Not found!\n");
-
+  /* htfold (&nummap); */
   arfold (&ar);
 
   return 0;
@@ -46,6 +52,7 @@ _debught (ht *table)
   unsigned int i;
 
   printf ("\n-------------------\n");
+  printf ("Size = %d\n", table->size);
 
   for (i = 0; i < table->capacity; ++i)
     {
