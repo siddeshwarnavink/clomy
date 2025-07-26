@@ -1,16 +1,32 @@
 /* clomy.h - C library of my own - Siddeshwar
 
+   A header-only universal C library.
+
+   Features:
+     1. Arena
+     2. Dynamic array
+     3. Hash table
+     4. String builder
+
    To use this library:
      #define CLOMY_IMPLEMENTATION
      #include "clomy.h"
 
    To add "clomy_" namespace prefix:
-     #define CLOMY_NO_SHORT_NAMES */
+     #define CLOMY_NO_SHORT_NAMES
+
+   To learn how to use this library I would recommend checking examples/ codes
+   which is sorted in increasing complexity and detail explanation of the
+   feature.
+
+   Common conventions:
+     1. Initialising function "*init" always initializes in arena whereas
+        "*init2" allocates in heap.
+     2. Any function involving memory allocation will return 0 if no error.  */
 
 #ifndef CLOMY_H
 #define CLOMY_H
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -351,13 +367,18 @@ clomy_dainit (clomy_da *da, clomy_arena *ar, unsigned int data_size,
               unsigned int capacity)
 {
   da->ar = ar;
-  da->data = clomy_aralloc (ar, data_size * capacity);
+
+  if (ar)
+    da->data = clomy_aralloc (ar, data_size * capacity);
+  else
+    da->data = malloc (data_size * capacity);
+
   if (!da->data)
     return 1;
 
   da->data_size = data_size;
   da->size = 0;
-  da->capacity = capacity;
+  da->capacity = CLOMY_ALIGN_UP (capacity, 8);
 
   return 0;
 }
@@ -365,16 +386,7 @@ clomy_dainit (clomy_da *da, clomy_arena *ar, unsigned int data_size,
 int
 clomy_dainit2 (clomy_da *da, unsigned int data_size, unsigned int capacity)
 {
-  da->ar = (void *)0;
-  da->data = malloc (data_size * capacity);
-  if (!da->data)
-    return 1;
-
-  da->data_size = data_size;
-  da->size = 0;
-  da->capacity = capacity;
-
-  return 0;
+  return clomy_dainit (da, (void *)0, data_size, capacity);
 }
 
 int

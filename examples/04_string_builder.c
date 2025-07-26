@@ -1,11 +1,18 @@
+/* String builder helps to build and manipulate string of dynamic size.
+
+   After string is built use sbflush() to get the whole null-terminated string.
+   The memory of this string should be managed by user. Calling sbflush() also
+   reset the string builder. */
 #include <stdio.h>
 
 #define CLOMY_IMPLEMENTATION
-#define CLOMY_STRINGBUILDER_CAPACITY 8
+#define CLOMY_STRINGBUILDER_CAPACITY 8 /* Optional. Capacity of chunk. */
 #include "../clomy.h"
 
-#define IN_ARENA 1
+#define IN_ARENA 1 /* Set to 0 to allocate in heap. */
+#define DEBUG 0    /* Set to 1 to inspect dynamic array. */
 
+/* Helper macro to append to string builder and check for error */
 #define SBAPPEND(sb, str)                                                     \
   do                                                                          \
     {                                                                         \
@@ -17,6 +24,7 @@
     }                                                                         \
   while (0)
 
+/* Helper function to inspect string builder. */
 void _debugsb (stringbuilder *sb);
 
 int
@@ -38,7 +46,9 @@ main ()
   SBAPPEND (sb, "World!");
   SBAPPEND (sb, " Flushing the string builder will build the string.");
 
+#if DEBUG
   _debugsb (&sb);
+#endif /* DEBUG */
 
   str = sbflush (&sb);
   printf ("Final String: \"%s\"\n", str);
@@ -51,7 +61,9 @@ main ()
 
   SBAPPEND (sb, "You can re-use the same string builder after flush.");
 
+#if DEBUG
   _debugsb (&sb);
+#endif /* DEBUG */
 
   str = sbflush (&sb);
   printf ("Final String: \"%s\"\n", str);

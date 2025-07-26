@@ -1,31 +1,51 @@
+/* An arena is memory allocator which pre-allocates a large chunk of memory and
+   sub-allocate parts of it as and when it is needed.
+
+   Why use an arena?
+     1. Less number of syscall(s).
+     2. De-allocate the whole arean after use.
+
+   I recommend using an area for every module of the code rather than one arena
+   for the entire application (unless it's a very simple application of
+   course).
+
+   I also recommend adjusting CLOMY_ARENA_CAPACITY according to the need. */
 #include <stdio.h>
 
+#define DEBUG 0 /* Set to 1 to inspect arena. */
+
 #define CLOMY_IMPLEMENTATION
-#define CLOMY_ARENA_CAPACITY 8
+#define CLOMY_ARENA_CAPACITY 8 /* Optional. Size of each chunk in bytes. */
 #include "../clomy.h"
 
+/* For inspecting the arena. */
 void _debugarena (arena *ar);
+
+/* Helper macro to check if allocated successfully. */
+#define CHECKALLOC(ptr)                                                       \
+  do                                                                          \
+    {                                                                         \
+      if (!(ptr))                                                             \
+        {                                                                     \
+          fprintf (stderr, "Failed to allocate age\n");                       \
+          goto cleanup;                                                       \
+        }                                                                     \
+    }                                                                         \
+  while (0)
 
 int
 main ()
 {
   arena ar = { 0 };
-  char *buf, *name = (char *)aralloc (&ar, 16 * sizeof (char));
+  char *buf, *name = (char *)aralloc (&ar, 16);
   int *age = (int *)aralloc (&ar, sizeof (int));
 
-  if (!age)
-    {
-      fprintf (stderr, "Failed to allocate age\n");
-      goto cleanup;
-    }
+  CHECKALLOC (age);
+  CHECKALLOC (name);
 
-  if (!name)
-    {
-      fprintf (stderr, "Failed to allocate name\n");
-      goto cleanup;
-    }
-
+#if DEBUG
   _debugarena (&ar);
+#endif /* DEBUG */
 
   printf ("What is your name?\n");
   scanf ("%s", name);
@@ -37,16 +57,19 @@ main ()
 
   printf ("Freeing name...\n");
   arfree (name);
+
+#if DEBUG
   _debugarena (&ar);
+#endif /* DEBUG */
 
   printf ("Allocating 20 bytes buf...\n");
   buf = aralloc (&ar, 20);
-  if (!buf)
-    {
-      fprintf (stderr, "Failed to allocate buf\n");
-      goto cleanup;
-    }
+  CHECKALLOC (buf);
+
+#if DEBUG
   _debugarena (&ar);
+#endif /* DEBUG */
+
   strcpy (buf, "Hello, World!");
   printf ("buf=\"%s\"\n", buf);
 

@@ -1,30 +1,42 @@
+/* Hash table is a data structure to store key-value pairs.
+
+   Value of hash table can be anything but key must be either unsigned integer
+   or string. */
 #include <stdio.h>
 
 #define CLOMY_IMPLEMENTATION
 #include "../clomy.h"
 
+#define IN_ARENA 1 /* Set to 0 to allocate in heap. */
+#define DEBUG 0    /* Set to 1 to inspect dynamic array. */
+
+/* Helper function to inspect hash table. */
 void _debught (ht *table);
 
 int
 main ()
 {
+#if IN_ARENA
   arena ar = { 0 };
+#endif /* IN_ARENA */
+
   ht nummap = { 0 }, strmap = { 0 };
   unsigned int i, val, *ptr;
 
   srand ((unsigned)time (NULL));
 
+  /* Here SIZEOF (INT) denotes size individual element of table. */
+#if IN_ARENA
   htinit (&nummap, &ar, 8, sizeof (int));
   htinit (&strmap, &ar, 16, sizeof (int));
-
-  /*
+#else
   htinit2 (&nummap, 16, sizeof (int));
   htinit2 (&strmap, 16, sizeof (int));
-  */
+#endif /* IN_ARENA */
 
   /* --------- Hash table with stirng key --------- */
 
-  printf ("Inserting in strmap...\n");
+  printf ("Inserting in string key table...\n");
 
   val = rand () % 100;
   stput (&strmap, "foo", &val);
@@ -38,7 +50,9 @@ main ()
   val = rand () % 100;
   stput (&strmap, "foobarbaz", &val);
 
+#if DEBUG
   _debught (&strmap);
+#endif /* DEBUG */
 
   printf ("Value of \"foo\" is ");
   ptr = (unsigned int *)stget (&strmap, "foo");
@@ -49,11 +63,9 @@ main ()
       stdel (&nummap, "foo");
     }
 
-  printf ("\n");
-
   /* --------- Hash table with unsigned int key --------- */
 
-  printf ("Inserting in nummap...\n");
+  printf ("Inserting in uint key table...\n");
   for (i = 0; i < 100; ++i)
     {
       val = rand () % 100;
@@ -73,14 +85,16 @@ main ()
       printf ("Not found!\n");
     }
 
-  _debught (&nummap);
+#if DEBUG
+  _debught (&strmap);
+#endif /* DEBUG */
 
-  /*
+#if IN_ARENA
+  arfold (&ar);
+#else
   stfold (&strmap);
   htfold (&nummap);
-  */
-
-  arfold (&ar);
+#endif
 
   return 0;
 }
