@@ -19,6 +19,10 @@
 #define CLOMY_ARENA_CAPACITY (8 * 1024)
 #endif // not CLOMY_ARENA_CAPACITY
 
+#ifndef CLOMY_STRINGBUILDER_CAPACITY
+#define CLOMY_STRINGBUILDER_CAPACITY 1024
+#endif // not CLOMY_STRINGBUILDER_CAPACITY
+
 #define CLOMY_ALIGN_UP(n, a) (((n) + ((a) - 1)) & ~((a) - 1))
 
 struct clomy_archunk
@@ -165,6 +169,39 @@ void clomy_stfold (clomy_ht *ht);
 
 /*----------------------------------------------------------------------*/
 
+struct clomy_sbchunk
+{
+  unsigned int size;
+  struct clomy_sbchunk *next;
+  char data[];
+};
+typedef struct clomy_sbchunk clomy_sbchunk;
+
+struct clomy_stringbuilder
+{
+  clomy_arena *ar;
+  unsigned int size;
+  clomy_sbchunk *head, *tail;
+};
+typedef struct clomy_stringbuilder clomy_stringbuilder;
+
+/* Initialize string builder. */
+void clomy_sbinit (clomy_stringbuilder *sb, clomy_arena *ar);
+
+/* Initialize string builder in heap. */
+void clomy_sbinit2 (clomy_stringbuilder *sb);
+
+/* Append string to the end of string builder. */
+int clomy_sbappend (clomy_stringbuilder *sb, char *val);
+
+/* Returns the constructed string and flushes the string builder. */
+char *clomy_sbflush (clomy_stringbuilder *sb);
+
+/* Free the string builder. */
+void clomy_sbfold (clomy_stringbuilder *sb);
+
+/*----------------------------------------------------------------------*/
+
 #ifndef CLOMY_NO_SHORT_NAMES
 
 #define arena clomy_arena
@@ -195,6 +232,13 @@ void clomy_stfold (clomy_ht *ht);
 #define stdel clomy_stdel
 #define htfold clomy_htfold
 #define stfold clomy_stfold
+
+#define stringbuilder clomy_stringbuilder
+#define sbinit clomy_sbinit
+#define sbinit2 clomy_sbinit2
+#define sbappend clomy_sbappend
+#define sbflush clomy_sbflush
+#define sbfold clomy_sbfold
 
 #endif /* not CLOMY_NO_SHORT_NAMES */
 
@@ -728,15 +772,15 @@ clomy_stfold (clomy_ht *ht)
           next = ptr->next;
 
           if (ht->ar)
-          {
-            arfree (ptr->key);
-            arfree (ptr);
-          }
+            {
+              arfree (ptr->key);
+              arfree (ptr);
+            }
           else
-          {
-            free (ptr->key);
-            free (ptr);
-          }
+            {
+              free (ptr->key);
+              free (ptr);
+            }
 
           --ht->size;
           ptr = next;
@@ -749,5 +793,149 @@ clomy_stfold (clomy_ht *ht)
     free (ht->data);
 }
 
+/*----------------------------------------------------------------------*/
+
+clomy_sbchunk *
+_clomy_newsbchunk (clomy_arena *ar)
+{
+  unsigned int cnksize = sizeof (clomy_sbchunk) + CLOMY_STRINGBUILDER_CAPACITY;
+
+  clomy_sbchunk *cnk;
+
+  if (ar)
+    cnk = (clomy_sbchunk *)clomy_aralloc (ar, cnksize);
+  else
+    cnk = (clomy_sbchunk *)malloc (cnksize);
+
+  if (!cnk)
+    return (clomy_sbchunk *)0;
+
+  cnk->size = 0;
+  cnk->next = (void *)0;
+  return cnk;
+}
+
+void
+clomy_sbinit (clomy_stringbuilder *sb, clomy_arena *ar)
+{
+  sb->ar = ar;
+  sb->size = 0;
+}
+
+void
+clomy_sbinit2 (clomy_stringbuilder *sb)
+{
+  clomy_sbinit (sb, (void *)0);
+}
+
+int
+clomy_sbappend (clomy_stringbuilder *sb, char *val)
+{
+  clomy_sbchunk *ptr;
+  unsigned int i = 0, j = 0;
+
+  if (!sb->head)
+    {
+      sb->head = _clomy_newsbchunk (sb->ar);
+      if (!sb->head)
+        return 1;
+
+      sb->tail = sb->head;
+    }
+
+  ptr = sb->tail;
+
+  do
+    {
+      if (j >= CLOMY_STRINGBUILDER_CAPACITY)
+        {
+          if (!ptr->next)
+            {
+              ptr->next = _clomy_newsbchunk (sb->ar);
+              if (!ptr->next)
+                return 1;
+
+              ptr = ptr->next;
+              sb->tail = ptr;
+            }
+          else
+            {
+              ptr = ptr->next;
+            }
+        }
+
+      j = ptr->size;
+
+      while (val[i] != '\0' && j < CLOMY_STRINGBUILDER_CAPACITY)
+        {
+          ptr->data[j++] = val[i++];
+          ++ptr->size;
+          ++sb->size;
+        }
+    }
+  while (val[i] != '\0');
+
+  return 0;
+}
+
+char *
+clomy_sbflush (clomy_stringbuilder *sb)
+{
+  clomy_sbchunk *ptr = sb->head;
+  unsigned int size = sb->size + 1, i, j = 0;
+  char *str;
+
+  if (!ptr)
+    return (char *)0;
+
+  if (sb->ar)
+    str = clomy_aralloc (sb->ar, size);
+  else
+    str = malloc (size);
+
+  if (!str)
+    return (char *)0;
+
+  while (ptr)
+    {
+      for (i = 0; i < ptr->size; ++i)
+        {
+          str[j++] = ptr->data[i];
+          ptr->data[i] = 0;
+        }
+
+      ptr->size = 0;
+      ptr = ptr->next;
+    }
+
+  sb->size = 0;
+  sb->tail = sb->head;
+
+  str[j] = '\0';
+
+  return str;
+}
+
+void
+clomy_sbfold (clomy_stringbuilder *sb)
+{
+  clomy_sbchunk *ptr = sb->head, *next;
+
+  while (ptr)
+    {
+      next = ptr->next;
+
+      if (sb->ar)
+        clomy_arfree (ptr);
+      else
+        free (ptr);
+
+      ptr = next;
+    }
+
+  sb->size = 0;
+  sb->head = (void *)0;
+  sb->tail = (void *)0;
+}
 
 #endif /* CLOMY_IMPLEMENTATION */
