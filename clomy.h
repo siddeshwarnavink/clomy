@@ -1,4 +1,4 @@
-/* clomy.h - C library of my own - Siddeshwar
+/* clomy.h v1.0 - C library of my own - Siddeshwar
 
    A header-only universal C library.
 
@@ -188,6 +188,7 @@ void clomy_stfold (clomy_ht *ht);
 struct clomy_sbchunk
 {
   unsigned int size;
+  unsigned int capacity;
   struct clomy_sbchunk *next;
   char data[];
 };
@@ -209,6 +210,21 @@ void clomy_sbinit2 (clomy_stringbuilder *sb);
 
 /* Append string to the end of string builder. */
 int clomy_sbappend (clomy_stringbuilder *sb, char *val);
+
+/* Append character to the end of string builder. */
+int clomy_sbappendch (clomy_stringbuilder *sb, char val);
+
+/* Insert string at Ith position of string builder. */
+int clomy_sbinsert (clomy_stringbuilder *sb, char *val, unsigned int i);
+
+/* Push string to the beginning of string builder. */
+int clomy_sbpush (clomy_stringbuilder *sb, char *val);
+
+/* Push character to the beginning of string builder. */
+int clomy_sbpushch (clomy_stringbuilder *sb, char val);
+
+/* Reverse the string. */
+void clomy_sbrev (clomy_stringbuilder *sb);
 
 /* Returns the constructed string and flushes the string builder. */
 char *clomy_sbflush (clomy_stringbuilder *sb);
@@ -253,6 +269,11 @@ void clomy_sbfold (clomy_stringbuilder *sb);
 #define sbinit clomy_sbinit
 #define sbinit2 clomy_sbinit2
 #define sbappend clomy_sbappend
+#define sbappendch clomy_sbappendch
+#define sbinsert clomy_sbinsert
+#define sbpush clomy_sbpush
+#define sbpushch clomy_sbpushch
+#define sbrev clomy_sbrev
 #define sbflush clomy_sbflush
 #define sbfold clomy_sbfold
 
@@ -808,21 +829,21 @@ clomy_stfold (clomy_ht *ht)
 /*----------------------------------------------------------------------*/
 
 clomy_sbchunk *
-_clomy_newsbchunk (clomy_arena *ar)
+_clomy_newsbchunk (clomy_stringbuilder *sb, unsigned int capacity)
 {
-  unsigned int cnksize = sizeof (clomy_sbchunk) + CLOMY_STRINGBUILDER_CAPACITY;
-
   clomy_sbchunk *cnk;
+  unsigned int cnksize = sizeof (clomy_sbchunk) + capacity;
 
-  if (ar)
-    cnk = (clomy_sbchunk *)clomy_aralloc (ar, cnksize);
+  if (sb->ar)
+    cnk = (clomy_sbchunk *)clomy_aralloc (sb->ar, cnksize);
   else
     cnk = (clomy_sbchunk *)malloc (cnksize);
 
   if (!cnk)
-    return (clomy_sbchunk *)0;
+    return (void *)0;
 
   cnk->size = 0;
+  cnk->capacity = capacity;
   cnk->next = (void *)0;
   return cnk;
 }
@@ -848,7 +869,7 @@ clomy_sbappend (clomy_stringbuilder *sb, char *val)
 
   if (!sb->head)
     {
-      sb->head = _clomy_newsbchunk (sb->ar);
+      sb->head = _clomy_newsbchunk (sb, CLOMY_STRINGBUILDER_CAPACITY);
       if (!sb->head)
         return 1;
 
@@ -859,26 +880,27 @@ clomy_sbappend (clomy_stringbuilder *sb, char *val)
 
   do
     {
-      if (j >= CLOMY_STRINGBUILDER_CAPACITY)
+      if (j >= ptr->capacity)
         {
           if (!ptr->next)
             {
-              ptr->next = _clomy_newsbchunk (sb->ar);
+              ptr->next = _clomy_newsbchunk (sb, CLOMY_STRINGBUILDER_CAPACITY);
               if (!ptr->next)
                 return 1;
 
               ptr = ptr->next;
-              sb->tail = ptr;
             }
           else
             {
               ptr = ptr->next;
             }
+
+          sb->tail = ptr;
         }
 
       j = ptr->size;
 
-      while (val[i] != '\0' && j < CLOMY_STRINGBUILDER_CAPACITY)
+      while (val[i] != '\0' && j < ptr->capacity)
         {
           ptr->data[j++] = val[i++];
           ++ptr->size;
@@ -888,6 +910,177 @@ clomy_sbappend (clomy_stringbuilder *sb, char *val)
   while (val[i] != '\0');
 
   return 0;
+}
+
+int
+clomy_sbappendch (clomy_stringbuilder *sb, char val)
+{
+  clomy_sbchunk *ptr, *cnk;
+
+  if (!sb->head)
+    {
+      sb->head = _clomy_newsbchunk (sb, CLOMY_STRINGBUILDER_CAPACITY);
+      if (!sb->head)
+        return 1;
+
+      sb->tail = sb->head;
+    }
+
+  ptr = sb->tail;
+  if (ptr->size + 1 > ptr->capacity)
+    {
+      cnk = _clomy_newsbchunk (sb, CLOMY_STRINGBUILDER_CAPACITY);
+      if (!cnk)
+        return 1;
+
+      cnk->data[0] = val;
+      cnk->size = 1;
+      cnk->next = ptr->next;
+      ptr->next = cnk;
+      sb->tail = cnk;
+    }
+  else
+    {
+      ptr->data[ptr->size++] = val;
+    }
+  ++sb->size;
+
+  return 0;
+}
+
+int
+clomy_sbinsert (clomy_stringbuilder *sb, char *val, unsigned int i)
+{
+  clomy_sbchunk *ptr = sb->head, *prev, *cnk;
+  int index = i;
+  unsigned int len = strlen (val), offset;
+
+  do
+    {
+      if (index - (int)ptr->size < 0)
+        break;
+
+      index -= ptr->size;
+      ptr = ptr->next;
+    }
+  while (ptr);
+
+  if (index == 0 || !ptr->next)
+    {
+      cnk = _clomy_newsbchunk (sb, len);
+      if (!cnk)
+        return 1;
+
+      strncpy (cnk->data, val, len);
+      cnk->size = len;
+      cnk->next = ptr->next;
+
+      ptr->next = cnk;
+      sb->size += len;
+    }
+  else
+    {
+      prev = ptr;
+      offset = ptr->size - index;
+
+      cnk = _clomy_newsbchunk (sb, len - offset);
+      if (!cnk)
+        return 1;
+
+      strncpy (cnk->data, &val[offset], len - offset);
+      cnk->size = len - offset;
+      cnk->next = ptr->next;
+      ptr->next = cnk;
+      ptr = cnk;
+
+      cnk = _clomy_newsbchunk (sb, offset);
+      if (!cnk)
+        return 1;
+
+      strncpy (cnk->data, &((char *)prev->data)[index], offset);
+      cnk->size = offset;
+      cnk->next = ptr->next;
+      ptr->next = cnk;
+
+      strncpy (&((char *)prev->data)[index], val, offset);
+      sb->size += len;
+    }
+
+  return 0;
+}
+
+int
+clomy_sbpush (clomy_stringbuilder *sb, char *val)
+{
+  clomy_sbchunk *cnk;
+  unsigned int len = strlen (val);
+
+  cnk = _clomy_newsbchunk (sb, len);
+  if (!cnk)
+    return 1;
+
+  strncpy (cnk->data, val, len);
+
+  cnk->size = len;
+  cnk->next = sb->head;
+
+  sb->head = cnk;
+  sb->size += len;
+
+  return 0;
+}
+
+int
+clomy_sbpushch (clomy_stringbuilder *sb, char val)
+{
+  clomy_sbchunk *cnk;
+
+  cnk = _clomy_newsbchunk (sb, 1);
+  if (!cnk)
+    return 1;
+
+  cnk->data[0] = val;
+  cnk->size = 1;
+  cnk->next = sb->head;
+
+  sb->head = cnk;
+  ++sb->size;
+
+  return 0;
+}
+
+void
+clomy_sbrev (clomy_stringbuilder *sb)
+{
+  clomy_sbchunk *ptr = sb->head, *prev = (void *)0, *next;
+  unsigned int a, b;
+  char tmp;
+
+  if (!ptr)
+    return;
+
+  sb->tail = sb->head;
+
+  while (ptr)
+    {
+      a = 0;
+      b = ptr->size - 1;
+      while (b > a)
+        {
+          tmp = ptr->data[a];
+          ptr->data[a] = ptr->data[b];
+          ptr->data[b] = tmp;
+          ++a;
+          --b;
+        }
+
+      next = ptr->next;
+      ptr->next = prev;
+      prev = ptr;
+      ptr = next;
+    }
+
+  sb->head = prev;
 }
 
 char *
