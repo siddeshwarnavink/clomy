@@ -1,7 +1,16 @@
-all: $(patsubst %.c, %.out, $(wildcard examples/*.c))
+SUBDIRS = examples tests
 
-examples/%.out: examples/%.c
-	$(CC) -ggdb -Wall -Wextra -o $@ $<
+all: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@
 
 clean:
-	rm -f examples/*.out
+	for dir in $(SUBDIRS); do \
+		$(MAKE) -C $$dir clean; \
+	done
+
+test:
+	$(MAKE) -C tests/ run
+
+.PHONY: all clean $(SUBDIRS)

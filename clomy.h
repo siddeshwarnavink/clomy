@@ -300,7 +300,7 @@ _clomy_newarchunk (unsigned int size)
 void *
 clomy_aralloc (clomy_arena *ar, unsigned int size)
 {
-  clomy_archunk *cnk;
+  clomy_archunk *cnk, *prev;
   clomy_aralloc_hdr *hdr;
   unsigned int cnk_size;
 
@@ -321,6 +321,13 @@ clomy_aralloc (clomy_arena *ar, unsigned int size)
   cnk_size = size + sizeof (clomy_aralloc_hdr);
   while (cnk)
     {
+      /* Trying to fold consecutive free chunks. */
+      if (prev && prev->size == 0 && cnk->size == 0) {
+        prev->capacity += cnk->capacity;
+        prev->next = cnk->next;
+        cnk = prev;
+      }
+
       if (cnk->capacity - cnk->size >= cnk_size)
         {
           hdr = (clomy_aralloc_hdr *)(cnk->data + cnk->size);
@@ -331,6 +338,7 @@ clomy_aralloc (clomy_arena *ar, unsigned int size)
           return (void *)((char *)hdr + sizeof (clomy_aralloc_hdr));
         }
 
+      prev = cnk;
       cnk = cnk->next;
     }
 
