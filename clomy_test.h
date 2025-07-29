@@ -4,7 +4,6 @@
    message.
 
    To use this library:
-     #define CLOMY_TEST_IMPLEMENTATION
      #include "clomy_test.h"
 
    To add "clomy_" namespace prefix:
@@ -33,6 +32,11 @@
   while (0);
 
 /* Utility to print error message if EXP is false. */
+#define CLOMY_FAILFALSE(exp, msg)                                             \
+  if (!(exp))                                                                 \
+    CLOMY_FAIL ((msg));
+
+/* Utility to print error message if EXP is true. */
 #define CLOMY_FAILFALSE(exp, msg)                                             \
   if (!(exp))                                                                 \
     CLOMY_FAIL ((msg));

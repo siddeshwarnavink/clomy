@@ -27,6 +27,7 @@
 #ifndef CLOMY_H
 #define CLOMY_H
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -300,7 +301,7 @@ _clomy_newarchunk (unsigned int size)
 void *
 clomy_aralloc (clomy_arena *ar, unsigned int size)
 {
-  clomy_archunk *cnk, *prev;
+  clomy_archunk *cnk, *prev = (void *)0;
   clomy_aralloc_hdr *hdr;
   unsigned int cnk_size;
 
@@ -322,11 +323,12 @@ clomy_aralloc (clomy_arena *ar, unsigned int size)
   while (cnk)
     {
       /* Trying to fold consecutive free chunks. */
-      if (prev && prev->size == 0 && cnk->size == 0) {
-        prev->capacity += cnk->capacity;
-        prev->next = cnk->next;
-        cnk = prev;
-      }
+      if (prev && prev->size == 0 && cnk->size == 0)
+        {
+          prev->capacity += cnk->capacity;
+          prev->next = cnk->next;
+          cnk = prev;
+        }
 
       if (cnk->capacity - cnk->size >= cnk_size)
         {
@@ -740,7 +742,7 @@ clomy_stdel (clomy_ht *ht, char *key)
 
   while (ptr)
     {
-      if (ptr->key == key)
+      if (strcmp (ptr->key, key) == 0)
         {
           if (prev)
             prev->next = ptr->next;
@@ -780,6 +782,7 @@ clomy_htfold (clomy_ht *ht)
 
       while (ptr)
         {
+          printf ("key=%d\n", ptr->key);
           next = ptr->next;
 
           if (ht->ar)
@@ -791,6 +794,8 @@ clomy_htfold (clomy_ht *ht)
           ptr = next;
         }
     }
+
+  printf ("free all.\n");
 
   if (ht->ar)
     arfree (ht->data);
