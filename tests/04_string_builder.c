@@ -21,10 +21,10 @@ main ()
   sbrev (&sb);
 
   str = sbflush (&sb);
+  printf ("Final String: \"%s\"\n", str);
+
   FAILFALSE (strcmp (str, "!dlroW eht ot olleH") == 0,
              "incorrect string constructed.");
-
-  printf ("Final String: \"%s\"\n", str);
 
   arfree (str);
 
@@ -33,12 +33,12 @@ main ()
   sbappendch (&sb, '\n');
 
   str = sbflush (&sb);
+  printf ("Final String: \"%s\"\n", str);
+
   FAILFALSE (
       strcmp (str, "Flushing the string builder will build the string.\n")
           == 0,
       "incorrect string constructed.");
-
-  printf ("Final String: \"%s\"\n", str);
 
   arfree (str);
 
@@ -47,11 +47,11 @@ main ()
   sbappend (&sb, " string builder after flush.");
 
   str = sbflush (&sb);
+  printf ("Final String: \"%s\"\n", str);
+
   FAILFALSE (
       strcmp (str, "You can re-use the same string builder after flush.") == 0,
       "incorrect string constructed.");
-
-  printf ("Final String: \"%s\"\n", str);
 
   arfree (str);
 

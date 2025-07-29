@@ -34,18 +34,28 @@
 
 #ifndef CLOMY_ARENA_CAPACITY
 #define CLOMY_ARENA_CAPACITY (8 * 1024)
-#endif // not CLOMY_ARENA_CAPACITY
+#endif /* not CLOMY_ARENA_CAPACITY */
 
 #ifndef CLOMY_STRINGBUILDER_CAPACITY
 #define CLOMY_STRINGBUILDER_CAPACITY 1024
-#endif // not CLOMY_STRINGBUILDER_CAPACITY
+#endif /* not CLOMY_STRINGBUILDER_CAPACITY */
 
 #define CLOMY_ALIGN_UP(n, a) (((n) + ((a) - 1)) & ~((a) - 1))
+
+#define CLOMY_ALLOC_MAGIC 0x00636E6B
+
+struct clomy_arfree_block
+{
+  unsigned int size;
+  struct clomy_arfree_block *next;
+};
+typedef struct clomy_arfree_block clomy_arfree_block;
 
 struct clomy_archunk
 {
   unsigned int size;
   unsigned int capacity;
+  clomy_arfree_block *free_list;
   struct clomy_archunk *next;
   unsigned char data[];
 };
@@ -54,7 +64,8 @@ typedef struct clomy_archunk clomy_archunk;
 struct clomy_aralloc_hdr
 {
   struct clomy_archunk *cnk;
-  unsigned short size;
+  unsigned int size;
+  unsigned int magic;
 };
 typedef struct clomy_aralloc_hdr clomy_aralloc_hdr;
 
@@ -72,6 +83,9 @@ void clomy_arfree (void *value);
 
 /* Free the entire arena. */
 void clomy_arfold (clomy_arena *ar);
+
+/* Print arena debug info. */
+void clomy_ardebug (clomy_arena *ar);
 
 /*----------------------------------------------------------------------*/
 
@@ -242,6 +256,7 @@ void clomy_sbfold (clomy_stringbuilder *sb);
 #define aralloc clomy_aralloc
 #define arfree clomy_arfree
 #define arfold clomy_arfold
+#define ardebug clomy_ardebug
 
 #define da clomy_da
 #define dainit clomy_dainit
@@ -295,15 +310,84 @@ _clomy_newarchunk (unsigned int size)
   cnk->size = 0;
   cnk->capacity = size;
   cnk->next = (void *)0;
+  cnk->free_list = (void *)0;
+
   return cnk;
+}
+
+clomy_arfree_block *
+_clomy_find_free_block (clomy_archunk *cnk, unsigned int needed_size,
+                        clomy_arfree_block **prev_ptr)
+{
+  clomy_arfree_block *prev = (void *)0;
+  clomy_arfree_block *current = cnk->free_list;
+
+  while (current)
+    {
+      if (current->size >= needed_size)
+        {
+          if (prev_ptr)
+            *prev_ptr = prev;
+          return current;
+        }
+      prev = current;
+      current = current->next;
+    }
+
+  if (prev_ptr)
+    *prev_ptr = (void *)0;
+  return (void *)0;
+}
+
+void
+_clomy_remove_free_block (clomy_archunk *cnk, clomy_arfree_block *block,
+                          clomy_arfree_block *prev)
+{
+  if (prev)
+    prev->next = block->next;
+  else
+    cnk->free_list = block->next;
+}
+
+void
+_clomy_add_free_block (clomy_archunk *cnk, clomy_arfree_block *new_block)
+{
+  clomy_arfree_block *prev = (void *)0;
+  clomy_arfree_block *current = cnk->free_list;
+
+  while (current && current < new_block)
+    {
+      prev = current;
+      current = current->next;
+    }
+
+  new_block->next = current;
+  if (prev)
+    prev->next = new_block;
+  else
+    cnk->free_list = new_block;
+
+  if (current && ((char *)new_block + new_block->size) == (char *)current)
+    {
+      new_block->size += current->size;
+      new_block->next = current->next;
+    }
+
+  if (prev && ((char *)prev + prev->size) == (char *)new_block)
+    {
+      prev->size += new_block->size;
+      prev->next = new_block->next;
+    }
 }
 
 void *
 clomy_aralloc (clomy_arena *ar, unsigned int size)
 {
-  clomy_archunk *cnk, *prev = (void *)0;
+  clomy_archunk *cnk;
   clomy_aralloc_hdr *hdr;
+  clomy_arfree_block *free_blk, *prev_free, *rem;
   unsigned int cnk_size;
+  const unsigned int hdr_size = CLOMY_ALIGN_UP (sizeof (clomy_aralloc_hdr), 8);
 
   size = CLOMY_ALIGN_UP (size, 8);
 
@@ -319,15 +403,29 @@ clomy_aralloc (clomy_arena *ar, unsigned int size)
 
   /* Trying first-fit exising chunk. */
   cnk = ar->head;
-  cnk_size = size + sizeof (clomy_aralloc_hdr);
+  cnk_size = size + hdr_size;
+  cnk_size = CLOMY_ALIGN_UP (cnk_size, 8);
+
   while (cnk)
     {
-      /* Trying to fold consecutive free chunks. */
-      if (prev && prev->size == 0 && cnk->size == 0)
+      free_blk = _clomy_find_free_block (cnk, cnk_size, &prev_free);
+      if (free_blk)
         {
-          prev->capacity += cnk->capacity;
-          prev->next = cnk->next;
-          cnk = prev;
+          _clomy_remove_free_block (cnk, free_blk, prev_free);
+
+          if (free_blk->size >= cnk_size + sizeof (clomy_arfree_block))
+            {
+              rem = (clomy_arfree_block *)((char *)free_blk + cnk_size);
+              rem->size = free_blk->size - cnk_size;
+              _clomy_add_free_block (cnk, rem);
+            }
+
+          hdr = (clomy_aralloc_hdr *)free_blk;
+          hdr->cnk = cnk;
+          hdr->size = size;
+          hdr->magic = CLOMY_ALLOC_MAGIC;
+
+          return (void *)((char *)hdr + hdr_size);
         }
 
       if (cnk->capacity - cnk->size >= cnk_size)
@@ -335,12 +433,12 @@ clomy_aralloc (clomy_arena *ar, unsigned int size)
           hdr = (clomy_aralloc_hdr *)(cnk->data + cnk->size);
           hdr->cnk = cnk;
           hdr->size = size;
+          hdr->magic = CLOMY_ALLOC_MAGIC;
 
           cnk->size += cnk_size;
-          return (void *)((char *)hdr + sizeof (clomy_aralloc_hdr));
+          return (void *)((char *)hdr + hdr_size);
         }
 
-      prev = cnk;
       cnk = cnk->next;
     }
 
@@ -358,8 +456,9 @@ clomy_aralloc (clomy_arena *ar, unsigned int size)
   hdr = (clomy_aralloc_hdr *)cnk->data;
   hdr->cnk = cnk;
   hdr->size = size;
+  hdr->magic = CLOMY_ALLOC_MAGIC;
 
-  return (void *)((char *)hdr + sizeof (clomy_aralloc_hdr));
+  return (void *)((char *)hdr + hdr_size);
 }
 
 void
@@ -367,13 +466,26 @@ clomy_arfree (void *value)
 {
   clomy_archunk *cnk;
   clomy_aralloc_hdr *hdr;
+  clomy_arfree_block *blk;
+  const unsigned int hdr_size = CLOMY_ALIGN_UP (sizeof (clomy_aralloc_hdr), 8);
 
   if (!value)
     return;
 
-  hdr = (clomy_aralloc_hdr *)((char *)value - sizeof (clomy_aralloc_hdr));
+  hdr = (clomy_aralloc_hdr *)((char *)value - hdr_size);
+  if (hdr->magic != CLOMY_ALLOC_MAGIC)
+    return;
+
   cnk = hdr->cnk;
-  cnk->size -= hdr->size + sizeof (clomy_aralloc_hdr);
+  /* cnk->size -= hdr->size + hdr_size; */
+
+  hdr->magic = 0;
+
+  blk = (clomy_arfree_block *)hdr;
+  blk->size = hdr->size + hdr_size;
+  blk->next = (void *)0;
+
+  _clomy_add_free_block (cnk, blk);
 }
 
 void
@@ -389,6 +501,35 @@ clomy_arfold (clomy_arena *ar)
 
   ar->head = (void *)0;
   ar->tail = (void *)0;
+}
+
+void
+clomy_ardebug (clomy_arena *ar)
+{
+  clomy_archunk *cnk = ar->head;
+  unsigned int chunk_num = 0;
+
+  printf ("----------------------------------------\n");
+  printf ("Arena Debug Information:\n");
+  while (cnk)
+    {
+      printf ("Chunk %u: size=%u, capacity=%u\n", chunk_num, cnk->size,
+              cnk->capacity);
+
+      clomy_arfree_block *free_block = cnk->free_list;
+      unsigned int free_num = 0;
+      while (free_block)
+        {
+          printf ("  Free block %u: size=%u, addr=%p\n", free_num,
+                  free_block->size, (void *)free_block);
+          free_block = free_block->next;
+          free_num++;
+        }
+
+      cnk = cnk->next;
+      chunk_num++;
+    }
+  printf ("----------------------------------------\n");
 }
 
 /*----------------------------------------------------------------------*/
@@ -575,6 +716,8 @@ clomy_htinit (clomy_ht *ht, clomy_arena *ar, unsigned int capacity,
   if (!ht->data)
     return 1;
 
+  memset (ht->data, 0, size);
+
   return 0;
 }
 
@@ -634,9 +777,9 @@ clomy_stput (clomy_ht *ht, char *key, void *value)
     return 1;
 
   if (ht->ar)
-    data->key = clomy_aralloc (ht->ar, keylen);
+    data->key = clomy_aralloc (ht->ar, keylen + 1);
   else
-    data->key = malloc (keylen);
+    data->key = malloc (keylen + 1);
 
   if (!data->key)
     return 1;
@@ -721,7 +864,7 @@ clomy_htdel (clomy_ht *ht, int key)
             free (ptr);
 
           if (!prev)
-            ht->data[i] = (void *)0;
+            ht->data[i] = ptr->next;
 
           --ht->size;
           break;
@@ -782,7 +925,6 @@ clomy_htfold (clomy_ht *ht)
 
       while (ptr)
         {
-          printf ("key=%d\n", ptr->key);
           next = ptr->next;
 
           if (ht->ar)
@@ -794,8 +936,6 @@ clomy_htfold (clomy_ht *ht)
           ptr = next;
         }
     }
-
-  printf ("free all.\n");
 
   if (ht->ar)
     arfree (ht->data);

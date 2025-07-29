@@ -45,7 +45,6 @@ main ()
 
   FAILFALSE (nummap.size == 120, "incorrect nummap size.");
 
-  /* TODO: Need to fix segfault here. Caused by arena. */
   printf ("Folding unsigned int key table...\n");
   htfold (&nummap);
 
