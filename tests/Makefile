@@ -8,7 +8,7 @@ all: $(TESTS)
 clean:
 	rm -f *.out
 
-run:
+test:
 	for test in $(TESTS); do \
 		./$$test; \
 	done

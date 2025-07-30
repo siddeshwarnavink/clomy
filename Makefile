@@ -1,4 +1,4 @@
-SUBDIRS = examples tests
+SUBDIRS = tests
 
 all: $(SUBDIRS)
 
@@ -6,11 +6,9 @@ $(SUBDIRS):
 	$(MAKE) -C $@
 
 clean:
-	for dir in $(SUBDIRS); do \
-		$(MAKE) -C $$dir clean; \
-	done
+	$(MAKE) -C tests/ clean
 
 test:
-	$(MAKE) -C tests/ run
+	$(MAKE) -C tests/ test
 
 .PHONY: all clean $(SUBDIRS)

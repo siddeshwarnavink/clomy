@@ -13,16 +13,7 @@
      #include "clomy.h"
 
    To add "clomy_" namespace prefix:
-     #define CLOMY_NO_SHORT_NAMES
-
-   To learn how to use this library I would recommend checking examples/ codes
-   which is sorted in increasing complexity and detail explanation of the
-   feature.
-
-   Common conventions:
-     1. Initialising function "*init" always initializes in arena whereas
-        "*init2" allocates in heap.
-     2. Any function involving memory allocation will return 0 if no error.  */
+     #define CLOMY_NO_SHORT_NAMES */
 
 #ifndef CLOMY_H
 #define CLOMY_H
@@ -74,6 +65,17 @@ struct clomy_arena
   clomy_archunk *head, *tail;
 };
 typedef struct clomy_arena clomy_arena;
+
+clomy_archunk *_clomy_newarchunk (unsigned int size);
+
+clomy_arfree_block *_clomy_find_free_block (clomy_archunk *cnk,
+                                            unsigned int needed_size,
+                                            clomy_arfree_block **prev_ptr);
+
+void _clomy_remove_free_block (clomy_archunk *cnk, clomy_arfree_block *block,
+                               clomy_arfree_block *prev);
+
+void _clomy_add_free_block (clomy_archunk *cnk, clomy_arfree_block *new_block);
 
 /* Allocate memory inside arena. */
 void *clomy_aralloc (clomy_arena *ar, unsigned int size);
@@ -244,6 +246,9 @@ void clomy_sbrev (clomy_stringbuilder *sb);
 /* Returns the constructed string and flushes the string builder. */
 char *clomy_sbflush (clomy_stringbuilder *sb);
 
+/* Reset the string builder. */
+void clomy_sbreset (clomy_stringbuilder *sb);
+
 /* Free the string builder. */
 void clomy_sbfold (clomy_stringbuilder *sb);
 
@@ -292,10 +297,9 @@ void clomy_sbfold (clomy_stringbuilder *sb);
 #define sbrev clomy_sbrev
 #define sbflush clomy_sbflush
 #define sbfold clomy_sbfold
+#define sbreset clomy_sbreset
 
 #endif /* not CLOMY_NO_SHORT_NAMES */
-
-#endif /* not CLOMY_H */
 
 #ifdef CLOMY_IMPLEMENTATION
 
@@ -1266,12 +1270,18 @@ clomy_sbflush (clomy_stringbuilder *sb)
       ptr = ptr->next;
     }
 
-  sb->size = 0;
-  sb->tail = sb->head;
+  clomy_sbreset (sb);
 
   str[j] = '\0';
 
   return str;
+}
+
+void
+clomy_sbreset (clomy_stringbuilder *sb)
+{
+  sb->size = 0;
+  sb->tail = sb->head;
 }
 
 void
@@ -1297,3 +1307,5 @@ clomy_sbfold (clomy_stringbuilder *sb)
 }
 
 #endif /* CLOMY_IMPLEMENTATION */
+
+#endif /* not CLOMY_H */
