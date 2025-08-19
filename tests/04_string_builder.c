@@ -10,7 +10,7 @@ main ()
 {
   arena ar = { 0 };
   stringbuilder sb = { 0 };
-  char *str;
+  string *str;
 
   sbinit (&sb, &ar);
 
@@ -21,9 +21,9 @@ main ()
   sbrev (&sb);
 
   str = sbflush (&sb);
-  printf ("Final String: \"%s\"\n", str);
+  printf ("Final String: \"%s\"\n", str->data);
 
-  FAILFALSE (strcmp (str, "!dlroW eht ot olleH") == 0,
+  FAILFALSE (strcmp (str->data, "!dlroW eht ot olleH") == 0,
              "incorrect string constructed.");
 
   arfree (str);
@@ -33,10 +33,10 @@ main ()
   sbappendch (&sb, '\n');
 
   str = sbflush (&sb);
-  printf ("Final String: \"%s\"\n", str);
+  printf ("Final String: \"%s\"\n", str->data);
 
   FAILFALSE (
-      strcmp (str, "Flushing the string builder will build the string.\n")
+      strcmp (str->data, "Flushing the string builder will build the string.\n")
           == 0,
       "incorrect string constructed.");
 
@@ -47,10 +47,10 @@ main ()
   sbappend (&sb, " string builder after flush.");
 
   str = sbflush (&sb);
-  printf ("Final String: \"%s\"\n", str);
+  printf ("Final String: \"%s\"\n", str->data);
 
   FAILFALSE (
-      strcmp (str, "You can re-use the same string builder after flush.") == 0,
+      strcmp (str->data, "You can re-use the same string builder after flush.") == 0,
       "incorrect string constructed.");
 
   arfree (str);

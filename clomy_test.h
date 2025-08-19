@@ -37,14 +37,15 @@
     CLOMY_FAIL ((msg));
 
 /* Utility to print error message if EXP is true. */
-#define CLOMY_FAILFALSE(exp, msg)                                             \
-  if (!(exp))                                                                 \
-    CLOMY_FAIL ((msg));
+#define CLOMY_FAILTRUE(exp, msg)                                             \
+  if ((exp))                                                                 \
+  CLOMY_FAIL ((msg));
 
 #else
 
 #define CLOMY_FAIL
 #define CLOMY_FAILFALSE
+#define CLOMY_FAILTRUE
 
 #endif /* not CLOMY_TEST_DISABLE */
 
@@ -52,6 +53,7 @@
 
 #define FAIL CLOMY_FAIL
 #define FAILFALSE CLOMY_FAILFALSE
+#define FAILTRUE CLOMY_FAILTRUE
 
 #endif /* not CLOMY_NO_SHORT_NAMES */
 
