@@ -9,7 +9,7 @@ main ()
 {
   arena ar = { 0 };
   ht strmap = { 0 }, nummap = { 0 };
-  unsigned int i;
+  U32 i;
 
   /* --------- Hash table with stirng key --------- */
   htinit (&strmap, &ar, 8, sizeof (int));
@@ -35,17 +35,17 @@ main ()
   printf ("Folding string key table...\n");
   stfold (&strmap);
 
-  /* --------- Hash table with unsigned int key --------- */
+  /* --------- Hash table with U32 key --------- */
   htinit (&nummap, &ar, 8, sizeof (int));
 
-  printf ("Inserting in unsigned int key table...\n");
+  printf ("Inserting in U32 key table...\n");
 
   for (i = 1; i <= 120; ++i)
     htput (&nummap, i, &(int){ i ^ 2 });
 
   FAILFALSE (nummap.size == 120, "incorrect nummap size.");
 
-  printf ("Folding unsigned int key table...\n");
+  printf ("Folding U32 key table...\n");
   htfold (&nummap);
 
   arfold (&ar);

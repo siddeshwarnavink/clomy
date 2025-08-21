@@ -7,7 +7,7 @@
 struct Person
 {
   char name[16];
-  unsigned int age;
+  U32 age;
 };
 typedef struct Person Person;
 
