@@ -16,32 +16,36 @@ main ()
 
   printf ("Inserting in string key table...\n");
   stput (&strmap, "foo", &(int){ 8 });
-  stput (&strmap, "bar", &(int){ 16 });
-  stput (&strmap, "foobar", &(int){ 24 });
+  stput_int (&strmap, "bar", 6);
+  stput_int (&strmap, "foobar", 24);
 
   FAILFALSE (strmap.size == 3, "incorrect strmap size.");
   FAILFALSE (*((int *)stget (&strmap, "foo")) == 8,
              "incorrect value for FOO.");
-  FAILFALSE (*((int *)stget (&strmap, "bar")) == 16,
-             "incorrect value for BAR.");
-  FAILFALSE (*((int *)stget (&strmap, "foobar")) == 24,
+  FAILFALSE (*stget_int (&strmap, "bar") == 6, "incorrect value for BAR.");
+  FAILFALSE (*stget_int (&strmap, "foobar") == 24,
              "incorrect value for FOOBAR.");
 
   printf ("Deleting value of \"foo\"...\n");
   stdel (&strmap, "foo");
   FAILFALSE (strmap.size == 2, "key FOO not deleted.");
-  FAILFALSE (stget (&strmap, "foo") == (void *)0, "key FOO not deleted.");
+  FAILFALSE (stget_int (&strmap, "foo") == NULL, "key FOO not deleted.");
 
   printf ("Folding string key table...\n");
   stfold (&strmap);
 
-  /* --------- Hash table with U32 key --------- */
+  /* --------- Hash table with int key --------- */
   htinit (&nummap, &ar, 8, sizeof (int));
 
   printf ("Inserting in U32 key table...\n");
 
   for (i = 1; i <= 120; ++i)
-    htput (&nummap, i, &(int){ i ^ 2 });
+    {
+      if (i % 2 == 0)
+        htput_int (&nummap, i, i ^ 2);
+      else
+        htput (&nummap, i, &(int){ i ^ 2 });
+    }
 
   FAILFALSE (nummap.size == 120, "incorrect nummap size.");
 

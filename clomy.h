@@ -6,7 +6,8 @@
      1. Arena
      2. Dynamic array
      3. Hash table
-     4. String builder
+     4. String
+     5. String builder
 
    To use this library:
      #define CLOMY_IMPLEMENTATION
@@ -18,6 +19,7 @@
 #ifndef CLOMY_H
 #define CLOMY_H
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,6 +48,14 @@
 #ifndef CLOMY_false
 #define CLOMY_false 0
 #endif /* CLOMY_false */
+
+#define CLOMY_TYPE_LIST                                                       \
+  X (int, int)                                                                \
+  X (float, float)                                                            \
+  X (long, long)                                                              \
+  X (double, double)                                                          \
+  X (char, char)                                                              \
+  X (short, short)
 
 typedef unsigned char U8;
 typedef unsigned short U16;
@@ -189,35 +199,80 @@ struct clomy_ht
 };
 typedef struct clomy_ht clomy_ht;
 
+/* Loop through each item of hash table. */
+#define clomy_ht_foreach(t, body)                                             \
+  for (U32 __i = 0; __i < (t)->capacity; ++__i)                               \
+    {                                                                         \
+      clomy_htdata *__data = (t)->data[__i];                                  \
+      int key = __data->key;                                                  \
+      while (__data)                                                          \
+        {                                                                     \
+          body;                                                               \
+          __data = __data->next;                                              \
+        }                                                                     \
+    }
+
+/* Loop through each item of string table. */
+#define clomy_st_foreach(t, body)                                             \
+  for (U32 __i = 0; __i < (t)->capacity; ++__i)                               \
+    {                                                                         \
+      clomy_stdata *__data = (t)->data[__i];                                  \
+      char *key = __data->key;                                                \
+      while (__data)                                                          \
+        {                                                                     \
+          body;                                                               \
+          __data = __data->next;                                              \
+        }                                                                     \
+    }
+
 U32 _clomy_hash_int (clomy_ht *ht, U32 x);
 
 U32 _clomy_hash_str (clomy_ht *ht, char *x);
 
-/* Initialize hash table with either U32eger or string key. */
+/* Initialize hash table with either int or string key. */
 int clomy_htinit (clomy_ht *ht, clomy_arena *ar, U32 capacity, U32 dsize);
 
-/* Initialize hash table with either U32eger or string key in heap. */
+/* Initialize hash table with either int or string key in heap. */
 int clomy_htinit2 (clomy_ht *ht, U32 capacity, U32 dsize);
 
-/* Put value in U32eger key in hash table. */
+/* Put value in int key in hash table. */
 int clomy_htput (clomy_ht *ht, int key, void *value);
+#define X(type, suffix)                                                       \
+  inline int clomy_htput_##suffix (clomy_ht *table, int key, type val);
+CLOMY_TYPE_LIST
+#undef X
 
 /* Put value in string key in hash table. */
 int clomy_stput (clomy_ht *ht, char *key, void *value);
+#define X(type, suffix)                                                       \
+  inline int clomy_stput_##suffix (clomy_ht *table, char *key, type val);
+CLOMY_TYPE_LIST
+#undef X
 
-/* Get value for U32eger key hash table. */
+/* Set integer value 1 if key doesn't exist, increment it otherwise. */
+inline int clomy_stinc_int (clomy_ht *ht, char *key);
+
+/* Get value for int key hash table. */
 void *clomy_htget (clomy_ht *ht, int key);
+#define X(type, suffix)                                                       \
+  inline type *clomy_htget_##suffix (clomy_ht *table, int key);
+CLOMY_TYPE_LIST
+#undef X
 
 /* Get value for string key hash table. */
 void *clomy_stget (clomy_ht *ht, char *key);
+#define X(type, suffix)                                                       \
+  inline type *clomy_stget_##suffix (clomy_ht *table, char *key);
+CLOMY_TYPE_LIST
+#undef X
 
-/* Delete U32eger key from hash table. */
+/* Delete U32 key from hash table. */
 void clomy_htdel (clomy_ht *ht, int key);
 
 /* Delete string key from hash table. */
 void clomy_stdel (clomy_ht *ht, char *key);
 
-/* Free the hash table with U32eger key. */
+/* Free the hash table with U32 key. */
 void clomy_htfold (clomy_ht *ht);
 
 /* Free the hash table with string key. */
@@ -227,10 +282,33 @@ void clomy_stfold (clomy_ht *ht);
 
 struct clomy_string
 {
-  char *data;
-  U32 size;
+  clomy_arena *ar;
+  U32 size;   /* Size of string excluding null. */
+  char *data; /* Null-terminated string. */
 };
 typedef struct clomy_string clomy_string;
+
+/* Copy string. */
+clomy_string *clomy_stringcpy (clomy_string *s);
+
+/* Convert to lower case. */
+void clomy_string_lower (clomy_string *s);
+
+/* Convert to upper case. */
+void clomy_string_upper (clomy_string *s);
+
+/* Remove the first character of the string. */
+char clomy_string_chop_head (clomy_string *s);
+
+/* Split string by delimiter. */
+clomy_string *clomy_string_split_delim (clomy_string *s, char delim);
+/* Split string by space (default delimiter). */
+inline clomy_string *clomy_string_split (clomy_string *s);
+
+/* Trim string. */
+void clomy_string_trim (clomy_string *s);
+
+/*----------------------------------------------------------------------*/
 
 struct clomy_sbchunk
 {
@@ -248,9 +326,6 @@ struct clomy_stringbuilder
   clomy_sbchunk *head, *tail;
 };
 typedef struct clomy_stringbuilder clomy_stringbuilder;
-
-/* Copy string. */
-clomy_string *clomy_stringcpy (clomy_arena *ar, clomy_string *s);
 
 /* Initialize string builder. */
 void clomy_sbinit (clomy_stringbuilder *sb, clomy_arena *ar);
@@ -284,6 +359,17 @@ void clomy_sbreset (clomy_stringbuilder *sb);
 
 /* Free the string builder. */
 void clomy_sbfold (clomy_stringbuilder *sb);
+
+/*----------------------------------------------------------------------*/
+
+/* Get the maximum value of A and B */
+inline int clomy_max_int (int a, int b);
+
+/* Get the minimum value of A and B */
+inline int clomy_min_int (int a, int b);
+
+/* Read entire file into single buffer. */
+clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 
 /*----------------------------------------------------------------------*/
 
@@ -321,21 +407,52 @@ void clomy_sbfold (clomy_stringbuilder *sb);
 
 #define ht clomy_ht
 #define htdata clomy_htdata
+#define st_foreach clomy_st_foreach
 #define htinit clomy_htinit
 #define htinit2 clomy_htinit2
+
 #define htput clomy_htput
+#define htput_float clomy_htput_float
+#define htput_long clomy_htput_long
+#define htput_double clomy_htput_double
+#define htput_int clomy_htput_int
+#define htinc_int clomy_htinc_int
+
 #define stput clomy_stput
+#define stput_float clomy_stput_float
+#define stput_long clomy_stput_long
+#define stput_double clomy_stput_double
+#define stput_int clomy_stput_int
+
 #define htget clomy_htget
+#define htget_float clomy_htget_float
+#define htget_long clomy_htget_long
+#define htget_double clomy_htget_double
+#define htget_int clomy_htget_int
+
 #define stget clomy_stget
+#define stget_float clomy_stget_float
+#define stget_long clomy_stget_long
+#define stget_double clomy_stget_double
+#define stget_int clomy_stget_int
+
+#define stinc_int clomy_stinc_int
 #define htdel clomy_htdel
 #define stdel clomy_stdel
 #define htfold clomy_htfold
 #define stfold clomy_stfold
 
-#define stringbuilder clomy_stringbuilder
 #define string clomy_string
-#define sbinit clomy_sbinit
 #define stringcpy clomy_stringcpy
+#define string_lower clomy_string_lower
+#define string_upper clomy_string_upper
+#define string_chop_head clomy_string_chop_head
+#define string_split_delim clomy_string_split_delim
+#define string_split clomy_string_split
+#define string_trim clomy_string_trim
+
+#define stringbuilder clomy_stringbuilder
+#define sbinit clomy_sbinit
 #define sbinit2 clomy_sbinit2
 #define sbappend clomy_sbappend
 #define sbappendch clomy_sbappendch
@@ -346,6 +463,10 @@ void clomy_sbfold (clomy_stringbuilder *sb);
 #define sbflush clomy_sbflush
 #define sbfold clomy_sbfold
 #define sbreset clomy_sbreset
+
+#define max_int clomy_max_int
+#define min_int clomy_max_int
+#define file_get_content clomy_file_get_content
 
 #endif /* not CLOMY_NO_SHORT_NAMES */
 
@@ -827,6 +948,32 @@ clomy_htput (clomy_ht *ht, int key, void *value)
   return 0;
 }
 
+#define X(type, suffix)                                                       \
+  int clomy_htput_##suffix (clomy_ht *table, int key, type val)               \
+  {                                                                           \
+    return clomy_htput (table, key, &val);                                    \
+  }
+CLOMY_TYPE_LIST
+#undef X
+
+#define X(type, suffix)                                                       \
+  int clomy_stput_##suffix (clomy_ht *table, char *key, type val)             \
+  {                                                                           \
+    return clomy_stput (table, key, &val);                                    \
+  }
+CLOMY_TYPE_LIST
+#undef X
+
+int
+clomy_stinc_int (clomy_ht *ht, char *key)
+{
+  U32 *ptr = stget (ht, key);
+  if (ptr)
+    return clomy_stput_int (ht, key, *ptr + 1);
+  else
+    return clomy_stput_int (ht, key, 1);
+}
+
 int
 clomy_stput (clomy_ht *ht, char *key, void *value)
 {
@@ -888,6 +1035,15 @@ clomy_htget (clomy_ht *ht, int key)
   return CLOMY_NULL;
 }
 
+#define X(type, suffix)                                                       \
+  type *clomy_htget_##suffix (clomy_ht *ht, int key)                          \
+  {                                                                           \
+    type *val = htget (ht, key);                                              \
+    return val;                                                               \
+  }
+CLOMY_TYPE_LIST
+#undef X
+
 void *
 clomy_stget (clomy_ht *ht, char *key)
 {
@@ -908,6 +1064,15 @@ clomy_stget (clomy_ht *ht, char *key)
 
   return CLOMY_NULL;
 }
+
+#define X(type, suffix)                                                       \
+  type *clomy_stget_##suffix (clomy_ht *ht, char *key)                        \
+  {                                                                           \
+    type *val = stget (ht, key);                                              \
+    return val;                                                               \
+  }
+CLOMY_TYPE_LIST
+#undef X
 
 void
 clomy_htdel (clomy_ht *ht, int key)
@@ -1047,6 +1212,103 @@ clomy_stfold (clomy_ht *ht)
 
 /*----------------------------------------------------------------------*/
 
+string *
+clomy_stringcpy (clomy_string *s)
+{
+  string *str;
+
+  if (s->ar)
+    {
+      str = clomy_aralloc (s->ar, sizeof (clomy_string));
+      str->data = clomy_aralloc (s->ar, s->size + 1);
+    }
+  else
+    {
+      str = malloc (sizeof (clomy_string));
+      str->data = malloc (s->size + 1);
+    }
+
+  str->ar = s->ar;
+  str->size = s->size;
+  strcpy (str->data, s->data);
+
+  return str;
+}
+
+void
+clomy_string_lower (clomy_string *s)
+{
+  U8 i;
+  for (i = 0; i < s->size; ++i)
+    s->data[i] = tolower (s->data[i]);
+}
+
+void
+clomy_string_upper (clomy_string *s)
+{
+  U8 i;
+  for (i = 0; i < s->size; ++i)
+    s->data[i] = toupper (s->data[i]);
+}
+
+char
+clomy_string_chop_head (clomy_string *s)
+{
+  char ch;
+
+  if (s->size <= 0)
+    return '\0';
+
+  ch = s->data[0];
+  memmove (s->data, s->data + 1, --s->size);
+  s->data[s->size + 1] = '\0';
+  return ch;
+}
+
+clomy_string *
+clomy_string_split_delim (clomy_string *s, char delim)
+{
+  clomy_stringbuilder sb = { 0 };
+  string *res;
+  char ch;
+
+  sbinit (&sb, s->ar);
+
+  while (s->size > 0 && (ch = clomy_string_chop_head (s)) != '\0'
+         && ch != delim)
+    {
+      sbappendch (&sb, ch);
+    }
+
+  res = sbflush (&sb);
+  return res;
+}
+
+clomy_string *
+clomy_string_split (clomy_string *s)
+{
+  return clomy_string_split_delim (s, ' ');
+}
+
+void
+clomy_string_trim (clomy_string *s)
+{
+  U32 a = 0, b = s->size - 1;
+
+  while (isspace (s->data[a]))
+    ++a;
+  while (b > a && isspace (s->data[b]))
+    --b;
+
+  if (a > 0 || b < s->size)
+    {
+      memmove (s->data, s->data + a, b - a + 1);
+      s->data[b - a + 1] = '\0';
+    }
+}
+
+/*----------------------------------------------------------------------*/
+
 clomy_sbchunk *
 _clomy_newsbchunk (clomy_stringbuilder *sb, U32 capacity)
 {
@@ -1065,15 +1327,6 @@ _clomy_newsbchunk (clomy_stringbuilder *sb, U32 capacity)
   cnk->capacity = capacity;
   cnk->next = CLOMY_NULL;
   return cnk;
-}
-
-string *
-clomy_stringcpy (clomy_arena *ar, clomy_string *s)
-{
-  string *str = clomy_aralloc (ar, sizeof (clomy_string));
-  str->data = clomy_aralloc (ar, s->size + 1);
-  strcpy (str->data, s->data);
-  return str;
 }
 
 void
@@ -1350,7 +1603,8 @@ clomy_sbflush (clomy_stringbuilder *sb)
   clomy_sbreset (sb);
 
   str->data[j] = '\0';
-  str->size = size;
+  str->size = size - 1;
+  str->ar = sb->ar;
 
   return str;
 }
@@ -1382,6 +1636,43 @@ clomy_sbfold (clomy_stringbuilder *sb)
   sb->size = 0;
   sb->head = CLOMY_NULL;
   sb->tail = CLOMY_NULL;
+}
+
+/*----------------------------------------------------------------------*/
+
+int
+clomy_max_int (int a, int b)
+{
+  return a > b ? a : b;
+}
+
+int
+clomy_min_int (int a, int b)
+{
+  return a < b ? a : b;
+}
+
+clomy_string *
+clomy_file_get_content (clomy_arena *ar, const char *file_path)
+{
+  stringbuilder sb = { 0 };
+  FILE *file;
+  clomy_string *res;
+  char ch;
+
+  clomy_sbinit (&sb, ar);
+
+  file = fopen (file_path, "r");
+  if (!file)
+    return NULL;
+
+  while ((ch = fgetc (file)) != EOF)
+    sbappendch (&sb, ch);
+
+  res = sbflush (&sb);
+  fclose (file);
+
+  return res;
 }
 
 #endif /* CLOMY_IMPLEMENTATION */

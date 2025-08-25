@@ -1,4 +1,4 @@
-SUBDIRS = tests
+SUBDIRS = tests examples
 
 all: $(SUBDIRS)
 
