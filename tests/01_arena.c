@@ -1,7 +1,6 @@
 #define CLOMY_IMPLEMENTATION
 #define CLOMY_ARENA_CAPACITY 64
 #include "../clomy.h"
-#include "../clomy_test.h"
 
 int
 main ()

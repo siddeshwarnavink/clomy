@@ -3,7 +3,6 @@
 #define CLOMY_IMPLEMENTATION
 #define CLOMY_STRINGBUILDER_CAPACITY 8
 #include "../clomy.h"
-#include "../clomy_test.h"
 
 int
 main ()

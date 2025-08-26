@@ -2,7 +2,6 @@
 
 #define CLOMY_IMPLEMENTATION
 #include "../clomy.h"
-#include "../clomy_test.h"
 
 int
 main ()
