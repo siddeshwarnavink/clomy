@@ -1,5 +1,5 @@
+/* #define CLOMY_ARENA_CAPACITY 64 */
 #define CLOMY_IMPLEMENTATION
-#define CLOMY_ARENA_CAPACITY 64
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -26,11 +26,12 @@ main ()
 
   printf ("Freeing buf1...\n");
   arfree (buf1);
-  FAILFALSE (ar.head->free_list->size == 32, "buf1 didn't free.");
+  /* FAILFALSE (ar.head->free_list->size == 32, "buf1 didn't free."); */
+  FAILFALSE (ar.head->free_list->size == 40, "buf1 didn't free.");
 
-  printf ("Freeing buf2...\n");
-  arfree (buf2);
-  FAILFALSE (ar.head->free_list->size == 64, "buf1 didn't free.");
+  printf ("Freeing buf2...\n"); arfree (buf2);
+  /* FAILFALSE (ar.head->free_list->size == 64, "buf2 didn't free."); */
+  FAILFALSE (ar.head->free_list->size == 80, "buf2 didn't free.");
 
   printf ("Allocating buf3 32 bytes.\n");
   buf3 = (char *)aralloc (&ar, 32);

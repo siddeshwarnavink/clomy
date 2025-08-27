@@ -25,20 +25,14 @@
 #include <string.h>
 #include <time.h>
 
-#define CLOMY_strncpy(dst, src, n) strncpy(dst, n, src)
-#define CLOMY_strcpy(dst, src, n) strcpy((dst), (src))
-
-
 #ifdef CLOMY_BACKEND_WINAPI
-  #include <windows.h>
-  static HANDLE CLOMY__heap = NULL;
-  //#ifdef _MSC_VER
-  //  #define CLOMY_strcpy(dst, src, n) strcpy_s((dst), (n), (src))
-  //  #define CLOMY_strncpy(dst, src, n) strncpy_s(dst, n, src, _TRUNCATE)
-  //#endif /* _MSC_VER */
+#include <windows.h>
+static HANDLE CLOMY__heap = NULL;
+#define CLOMY_strcpy(dst, src, n) strcpy_s ((dst), (n), (src))
+#define CLOMY_strncpy(dst, src, n, m) strncpy_s (dst, n, src, _TRUNCATE)
 #else
-  //#define CLOMY_strncpy(dst, src, n) strncpy(dst, n, src)
-  //#define CLOMY_strcpy(dst, src, n) strcpy((dst), (src))
+#define CLOMY_strncpy(dst, src, n) strncpy (dst, src, n)
+#define CLOMY_strcpy(dst, src, n) strcpy ((dst), (src))
 #endif /* CLOMY_BACKEND_WINAPI */
 
 #ifndef CLOMY_ARENA_CAPACITY
@@ -79,23 +73,23 @@ typedef signed long long S64;
 #ifndef CLOMY_TEST_DISABLE
 
 /* Utility to print error message. */
-#define CLOMY_FAIL(msg)                                                       \
-  do                                                                          \
-    {                                                                         \
-      fprintf (stderr, "%s:%d:0: Assertion failed: %s\n", __FILE__, __LINE__, \
-               (msg));                                                        \
-      exit (1);                                                               \
-    }                                                                         \
+#define CLOMY_FAIL(msg)                                                        \
+  do                                                                           \
+    {                                                                          \
+      fprintf (stderr, "%s:%d:0: Assertion failed: %s\n", __FILE__, __LINE__,  \
+               (msg));                                                         \
+      exit (1);                                                                \
+    }                                                                          \
   while (0);
 
 /* Utility to print error message if EXP is false. */
-#define CLOMY_FAILFALSE(exp, msg)                                             \
-  if (!(exp))                                                                 \
+#define CLOMY_FAILFALSE(exp, msg)                                              \
+  if (!(exp))                                                                  \
     CLOMY_FAIL ((msg));
 
 /* Utility to print error message if EXP is true. */
-#define CLOMY_FAILTRUE(exp, msg)                                              \
-  if ((exp))                                                                  \
+#define CLOMY_FAILTRUE(exp, msg)                                               \
+  if ((exp))                                                                   \
     CLOMY_FAIL ((msg));
 
 #else
@@ -172,7 +166,8 @@ struct clomy_da
 typedef struct clomy_da clomy_da;
 
 /* Initialize the dynamic array in arena. */
-int clomy_dainit (clomy_da *da, clomy_arena *ar, size_t data_size, size_t capacity);
+int clomy_dainit (clomy_da *da, clomy_arena *ar, size_t data_size,
+                  size_t capacity);
 
 /* Set the capacity of dynamic array. */
 int clomy_dacap (clomy_da *da, size_t capacity);
@@ -297,29 +292,29 @@ typedef struct clomy_ht clomy_ht;
 
 /* Loop through each item of hash table. */
 
-#define clomy_ht_foreach(t, body)                                          \
-  for (U32 __i = 0; __i < (t)->capacity; ++__i)                               \
-    {                                                                         \
-      clomy_htdata *__data = (t)->data[__i];                               \
-      int key = __data->key;                                                  \
-      while (__data)                                                          \
-        {                                                                     \
-          body;                                                               \
-          __data = __data->next;                                              \
-        }                                                                     \
+#define clomy_ht_foreach(t, body)                                              \
+  for (U32 __i = 0; __i < (t)->capacity; ++__i)                                \
+    {                                                                          \
+      clomy_htdata *__data = (t)->data[__i];                                   \
+      int key = __data->key;                                                   \
+      while (__data)                                                           \
+        {                                                                      \
+          body;                                                                \
+          __data = __data->next;                                               \
+        }                                                                      \
     }
 /**/
 
-#define clomy_st_foreach(t, body)                                          \
-  for (U32 __i = 0; __i < (t)->capacity; ++__i)                               \
-    {                                                                         \
-      clomy_stdata *__data = (t)->data[__i];                               \
-      char *key = __data->key;                                                  \
-      while (__data)                                                          \
-        {                                                                     \
-          body;                                                               \
-          __data = __data->next;                                              \
-        }                                                                     \
+#define clomy_st_foreach(t, body)                                              \
+  for (U32 __i = 0; __i < (t)->capacity; ++__i)                                \
+    {                                                                          \
+      clomy_stdata *__data = (t)->data[__i];                                   \
+      char *key = __data->key;                                                 \
+      while (__data)                                                           \
+        {                                                                      \
+          body;                                                                \
+          __data = __data->next;                                               \
+        }                                                                      \
     }
 /**/
 U32 _clomy_hash_int (clomy_ht *ht, int x);
@@ -383,8 +378,8 @@ void clomy_stfold (clomy_ht *ht);
 struct clomy_string
 {
   clomy_arena *ar;
-  size_t size;   /* Size of string excluding null. */
-  char *data; /* Null-terminated string. */
+  size_t size; /* Size of string excluding null. */
+  char *data;  /* Null-terminated string. */
 };
 typedef struct clomy_string clomy_string;
 
@@ -634,7 +629,9 @@ _clomy_newarchunk (size_t size)
   clomy_archunk *cnk;
 
 #ifdef CLOMY_BACKEND_WINAPI
-  cnk = HeapAlloc (CLOMY__heap ? CLOMY__heap : (CLOMY__heap = GetProcessHeap()), HEAP_ZERO_MEMORY, cnksize);
+  cnk = HeapAlloc (CLOMY__heap ? CLOMY__heap
+                               : (CLOMY__heap = GetProcessHeap ()),
+                   HEAP_ZERO_MEMORY, cnksize);
 #else
   cnk = (clomy_archunk *)malloc (cnksize);
 #endif
@@ -812,7 +809,6 @@ clomy_arfree (void *value)
     return;
 
   cnk = hdr->cnk;
-  /* cnk->size -= hdr->size + hdr_size; */
 
   hdr->magic = 0;
 
@@ -831,7 +827,8 @@ clomy_arfold (clomy_arena *ar)
     {
       next = cnk->next;
 #ifdef CLOMY_BACKEND_WINAPI
-      HeapFree(CLOMY__heap ? CLOMY__heap : (CLOMY__heap = GetProcessHeap()), 0, cnk);
+      HeapFree (CLOMY__heap ? CLOMY__heap : (CLOMY__heap = GetProcessHeap ()),
+                0, cnk);
 #else
       free (cnk);
 #endif
@@ -892,79 +889,114 @@ clomy_dacap (clomy_da *da, size_t capacity)
 void *
 clomy_daget (clomy_da *da, size_t i)
 {
-  // return da->data + i * da->data_size;
   return (char *)da->data + i * da->data_size;
 }
 
-int clomy_daget_int (clomy_da *da, size_t i) {
-  return *(int *) clomy_daget (da, i);
+int
+clomy_daget_int (clomy_da *da, size_t i)
+{
+  return *(int *)clomy_daget (da, i);
 }
-float clomy_daget_float (clomy_da *da, size_t i) {
-  return *(float *) clomy_daget (da, i);
+float
+clomy_daget_float (clomy_da *da, size_t i)
+{
+  return *(float *)clomy_daget (da, i);
 }
-long clomy_daget_long (clomy_da *da, size_t i) {
-  return *(long *) clomy_daget (da, i);
+long
+clomy_daget_long (clomy_da *da, size_t i)
+{
+  return *(long *)clomy_daget (da, i);
 }
-double clomy_daget_double (clomy_da *da, size_t i) {
-  return *(double *) clomy_daget (da, i);
+double
+clomy_daget_double (clomy_da *da, size_t i)
+{
+  return *(double *)clomy_daget (da, i);
 }
-char clomy_daget_char (clomy_da *da, size_t i) {
-  return *(char *) clomy_daget (da, i);
+char
+clomy_daget_char (clomy_da *da, size_t i)
+{
+  return *(char *)clomy_daget (da, i);
 }
-short clomy_daget_short (clomy_da *da, size_t i) {
-  return *(short *) clomy_daget (da, i);
+short
+clomy_daget_short (clomy_da *da, size_t i)
+{
+  return *(short *)clomy_daget (da, i);
 }
 /**/
 
 void *
 clomy_dafirst (clomy_da *da)
 {
-  return clomy_daget(da, 0);
+  return clomy_daget (da, 0);
 }
 
-int clomy_dafirst_int (clomy_da *da) {
-  return *(int *) clomy_daget (da, 0);
+int
+clomy_dafirst_int (clomy_da *da)
+{
+  return *(int *)clomy_daget (da, 0);
 }
-float clomy_dafirst_float (clomy_da *da) {
-  return *(float *) clomy_daget (da, 0);
+float
+clomy_dafirst_float (clomy_da *da)
+{
+  return *(float *)clomy_daget (da, 0);
 }
-long clomy_dafirst_long (clomy_da *da) {
-  return *(long *) clomy_daget (da, 0);
+long
+clomy_dafirst_long (clomy_da *da)
+{
+  return *(long *)clomy_daget (da, 0);
 }
-double clomy_dafirst_double (clomy_da *da) {
-  return *(double *) clomy_daget (da, 0);
+double
+clomy_dafirst_double (clomy_da *da)
+{
+  return *(double *)clomy_daget (da, 0);
 }
-char clomy_dafirst_char (clomy_da *da) {
-  return *(char *) clomy_daget (da, 0);
+char
+clomy_dafirst_char (clomy_da *da)
+{
+  return *(char *)clomy_daget (da, 0);
 }
-short clomy_dafirst_short (clomy_da *da) {
-  return *(short *) clomy_daget (da, 0);
+short
+clomy_dafirst_short (clomy_da *da)
+{
+  return *(short *)clomy_daget (da, 0);
 }
 /**/
 
 void *
 clomy_dalast (clomy_da *da)
 {
-  return clomy_daget(da, da->size - 1);
+  return clomy_daget (da, da->size - 1);
 }
 
-int clomy_dalast_int (clomy_da *da) {
-  return *(int *) clomy_daget (da, da->size - 1);
+int
+clomy_dalast_int (clomy_da *da)
+{
+  return *(int *)clomy_daget (da, da->size - 1);
 }
-float clomy_dalast_float (clomy_da *da) {
-  return *(float *) clomy_daget (da, da->size - 1);
+float
+clomy_dalast_float (clomy_da *da)
+{
+  return *(float *)clomy_daget (da, da->size - 1);
 }
-long clomy_dalast_long (clomy_da *da) {
-  return *(long *) clomy_daget (da, da->size - 1);
+long
+clomy_dalast_long (clomy_da *da)
+{
+  return *(long *)clomy_daget (da, da->size - 1);
 }
-double clomy_dalast_double (clomy_da *da) {
-  return *(double *) clomy_daget (da, da->size - 1);
+double
+clomy_dalast_double (clomy_da *da)
+{
+  return *(double *)clomy_daget (da, da->size - 1);
 }
-char clomy_dalast_char (clomy_da *da) {
-  return *(char *) clomy_daget (da, da->size - 1);
+char
+clomy_dalast_char (clomy_da *da)
+{
+  return *(char *)clomy_daget (da, da->size - 1);
 }
-short clomy_dalast_short (clomy_da *da) {
-  return *(short *) clomy_daget (da, da->size - 1);
+short
+clomy_dalast_short (clomy_da *da)
+{
+  return *(short *)clomy_daget (da, da->size - 1);
 }
 /**/
 
@@ -988,23 +1020,35 @@ clomy_daappend (clomy_da *da, void *data)
   return 0;
 }
 
-int clomy_daappend_int (clomy_da *da, int data) {
-  return clomy_daappend(da, &data);
+int
+clomy_daappend_int (clomy_da *da, int data)
+{
+  return clomy_daappend (da, &data);
 }
-int clomy_daappend_float (clomy_da *da, float data) {
-  return clomy_daappend(da, &data);
+int
+clomy_daappend_float (clomy_da *da, float data)
+{
+  return clomy_daappend (da, &data);
 }
-int clomy_daappend_long (clomy_da *da, long data) {
-  return clomy_daappend(da, &data);
+int
+clomy_daappend_long (clomy_da *da, long data)
+{
+  return clomy_daappend (da, &data);
 }
-int clomy_daappend_double (clomy_da *da, double data) {
-  return clomy_daappend(da, &data);
+int
+clomy_daappend_double (clomy_da *da, double data)
+{
+  return clomy_daappend (da, &data);
 }
-int clomy_daappend_char (clomy_da *da, char data) {
-  return clomy_daappend(da, &data);
+int
+clomy_daappend_char (clomy_da *da, char data)
+{
+  return clomy_daappend (da, &data);
 }
-int clomy_daappend_short (clomy_da *da, short data) {
-  return clomy_daappend(da, &data);
+int
+clomy_daappend_short (clomy_da *da, short data)
+{
+  return clomy_daappend (da, &data);
 }
 /**/
 
@@ -1022,22 +1066,34 @@ clomy_dapush (clomy_da *da, void *data)
   return 0;
 }
 
-int clomy_dapush_int (clomy_da *da, int data) {
+int
+clomy_dapush_int (clomy_da *da, int data)
+{
   return clomy_dapush (da, &(int){ data });
 }
-int clomy_dapush_float (clomy_da *da, float data) {
+int
+clomy_dapush_float (clomy_da *da, float data)
+{
   return clomy_dapush (da, &(float){ data });
 }
-int clomy_dapush_long (clomy_da *da, long data) {
+int
+clomy_dapush_long (clomy_da *da, long data)
+{
   return clomy_dapush (da, &(long){ data });
 }
-int clomy_dapush_double (clomy_da *da, double data) {
+int
+clomy_dapush_double (clomy_da *da, double data)
+{
   return clomy_dapush (da, &(double){ data });
 }
-int clomy_dapush_char (clomy_da *da, char data) {
+int
+clomy_dapush_char (clomy_da *da, char data)
+{
   return clomy_dapush (da, &(char){ data });
 }
-int clomy_dapush_short (clomy_da *da, short data) {
+int
+clomy_dapush_short (clomy_da *da, short data)
+{
   return clomy_dapush (da, &(short){ data });
 }
 /**/
@@ -1061,22 +1117,34 @@ clomy_dainsert (clomy_da *da, size_t i, void *data)
   return 0;
 }
 
-int clomy_dainsert_int (clomy_da *da, size_t i, int data) {
+int
+clomy_dainsert_int (clomy_da *da, size_t i, int data)
+{
   return clomy_dainsert (da, i, &(int){ data });
 }
-int clomy_dainsert_float (clomy_da *da, size_t i, float data) {
+int
+clomy_dainsert_float (clomy_da *da, size_t i, float data)
+{
   return clomy_dainsert (da, i, &(float){ data });
 }
-int clomy_dainsert_long (clomy_da *da, size_t i, long data) {
+int
+clomy_dainsert_long (clomy_da *da, size_t i, long data)
+{
   return clomy_dainsert (da, i, &(long){ data });
 }
-int clomy_dainsert_double (clomy_da *da, size_t i, double data) {
+int
+clomy_dainsert_double (clomy_da *da, size_t i, double data)
+{
   return clomy_dainsert (da, i, &(double){ data });
 }
-int clomy_dainsert_char (clomy_da *da, size_t i, char data) {
+int
+clomy_dainsert_char (clomy_da *da, size_t i, char data)
+{
   return clomy_dainsert (da, i, &(char){ data });
 }
-int clomy_dainsert_short (clomy_da *da, size_t i, short data) {
+int
+clomy_dainsert_short (clomy_da *da, size_t i, short data)
+{
   return clomy_dainsert (da, i, &(short){ data });
 }
 /**/
@@ -1099,23 +1167,35 @@ clomy_dapop (clomy_da *da)
   return data;
 }
 
-int clomy_dapop_int (clomy_da *da) {
-  return *(int *) clomy_dapop (da);
+int
+clomy_dapop_int (clomy_da *da)
+{
+  return *(int *)clomy_dapop (da);
 }
-float clomy_dapop_float (clomy_da *da) {
-  return *(float *) clomy_dapop (da);
+float
+clomy_dapop_float (clomy_da *da)
+{
+  return *(float *)clomy_dapop (da);
 }
-long clomy_dapop_long (clomy_da *da) {
-  return *(long *) clomy_dapop (da);
+long
+clomy_dapop_long (clomy_da *da)
+{
+  return *(long *)clomy_dapop (da);
 }
-double clomy_dapop_double (clomy_da *da) {
-  return *(double *) clomy_dapop (da);
+double
+clomy_dapop_double (clomy_da *da)
+{
+  return *(double *)clomy_dapop (da);
 }
-char clomy_dapop_char (clomy_da *da) {
-  return *(char *) clomy_dapop (da);
+char
+clomy_dapop_char (clomy_da *da)
+{
+  return *(char *)clomy_dapop (da);
 }
-short clomy_dapop_short (clomy_da *da) {
-  return *(short *) clomy_dapop (da);
+short
+clomy_dapop_short (clomy_da *da)
+{
+  return *(short *)clomy_dapop (da);
 }
 /**/
 
@@ -1204,27 +1284,40 @@ clomy_htput (clomy_ht *ht, int key, void *value)
   return 0;
 }
 
-
-int clomy_htput_int (clomy_ht *table, int key, int val) {
+int
+clomy_htput_int (clomy_ht *table, int key, int val)
+{
   return clomy_htput (table, key, &val);
 }
-int clomy_htput_float (clomy_ht *table, int key, float val) {
+int
+clomy_htput_float (clomy_ht *table, int key, float val)
+{
   return clomy_htput (table, key, &val);
 }
-int clomy_htput_long (clomy_ht *table, int key, long val) {
+int
+clomy_htput_long (clomy_ht *table, int key, long val)
+{
   return clomy_htput (table, key, &val);
 }
-int clomy_htput_double (clomy_ht *table, int key, double val) {
+int
+clomy_htput_double (clomy_ht *table, int key, double val)
+{
   return clomy_htput (table, key, &val);
 }
-int clomy_htput_char (clomy_ht *table, int key, char val) {
+int
+clomy_htput_char (clomy_ht *table, int key, char val)
+{
   return clomy_htput (table, key, &val);
 }
-int clomy_htput_short (clomy_ht *table, int key, short val) {
+int
+clomy_htput_short (clomy_ht *table, int key, short val)
+{
   return clomy_htput (table, key, &val);
 }
 /**/
-int clomy_htinc_int (clomy_ht *ht, int key) {
+int
+clomy_htinc_int (clomy_ht *ht, int key)
+{
   int *ptr = clomy_htget (ht, key);
   if (ptr)
     return clomy_htput_int (ht, key, *ptr + 1);
@@ -1233,26 +1326,40 @@ int clomy_htinc_int (clomy_ht *ht, int key) {
 }
 /**/
 
-int clomy_stput_int (clomy_ht *table, char *key, int val) {
+int
+clomy_stput_int (clomy_ht *table, char *key, int val)
+{
   return clomy_stput (table, key, &val);
 }
-int clomy_stput_float (clomy_ht *table, char *key, float val) {
+int
+clomy_stput_float (clomy_ht *table, char *key, float val)
+{
   return clomy_stput (table, key, &val);
 }
-int clomy_stput_long (clomy_ht *table, char *key, long val) {
+int
+clomy_stput_long (clomy_ht *table, char *key, long val)
+{
   return clomy_stput (table, key, &val);
 }
-int clomy_stput_double (clomy_ht *table, char *key, double val) {
+int
+clomy_stput_double (clomy_ht *table, char *key, double val)
+{
   return clomy_stput (table, key, &val);
 }
-int clomy_stput_char (clomy_ht *table, char *key, char val) {
+int
+clomy_stput_char (clomy_ht *table, char *key, char val)
+{
   return clomy_stput (table, key, &val);
 }
-int clomy_stput_short (clomy_ht *table, char *key, short val) {
+int
+clomy_stput_short (clomy_ht *table, char *key, short val)
+{
   return clomy_stput (table, key, &val);
 }
 /**/
-int clomy_stinc_int (clomy_ht *st, char *key) {
+int
+clomy_stinc_int (clomy_ht *st, char *key)
+{
   int *ptr = clomy_stget (st, key);
   if (ptr)
     return clomy_stput_int (st, key, *ptr + 1);
@@ -1275,7 +1382,7 @@ clomy_stput (clomy_ht *ht, char *key, void *value)
   if (!data->key)
     return 1;
 
-  CLOMY_strcpy (data->key, key, sizeof(data->key));
+  CLOMY_strcpy (data->key, key, sizeof (data->key));
   data->next = NULL;
   memcpy (data->data, value, ht->data_size);
 
@@ -1334,43 +1441,66 @@ clomy_stget (clomy_ht *ht, char *key)
   return NULL;
 }
 
+int *
+clomy_htget_int (clomy_ht *ht, int key)
+{
+  return (int *)clomy_htget (ht, key);
+}
+float *
+clomy_htget_float (clomy_ht *ht, int key)
+{
+  return (float *)clomy_htget (ht, key);
+}
+long *
+clomy_htget_long (clomy_ht *ht, int key)
+{
+  return (long *)clomy_htget (ht, key);
+}
+double *
+clomy_htget_double (clomy_ht *ht, int key)
+{
+  return (double *)clomy_htget (ht, key);
+}
+char *
+clomy_htget_char (clomy_ht *ht, int key)
+{
+  return (char *)clomy_htget (ht, key);
+}
+short *
+clomy_htget_short (clomy_ht *ht, int key)
+{
+  return (short *)clomy_htget (ht, key);
+}
 
-int *clomy_htget_int (clomy_ht *ht, int key) {
-  return (int *) clomy_htget (ht, key);
+int *
+clomy_stget_int (clomy_ht *st, char *key)
+{
+  return (int *)clomy_stget (st, key);
 }
-float *clomy_htget_float (clomy_ht *ht, int key) {
-  return (float *) clomy_htget (ht, key);
+float *
+clomy_stget_float (clomy_ht *st, char *key)
+{
+  return (float *)clomy_stget (st, key);
 }
-long *clomy_htget_long (clomy_ht *ht, int key) {
-  return (long *) clomy_htget (ht, key);
+long *
+clomy_stget_long (clomy_ht *st, char *key)
+{
+  return (long *)clomy_stget (st, key);
 }
-double *clomy_htget_double (clomy_ht *ht, int key) {
-  return (double *) clomy_htget (ht, key);
+double *
+clomy_stget_double (clomy_ht *st, char *key)
+{
+  return (double *)clomy_stget (st, key);
 }
-char *clomy_htget_char (clomy_ht *ht, int key) {
-  return (char *) clomy_htget (ht, key);
+char *
+clomy_stget_char (clomy_ht *st, char *key)
+{
+  return (char *)clomy_stget (st, key);
 }
-short *clomy_htget_short (clomy_ht *ht, int key) {
-  return (short *) clomy_htget (ht, key);
-}
-
-int *clomy_stget_int (clomy_ht *st, char *key) {
-  return (int *) clomy_stget (st, key);
-}
-float *clomy_stget_float (clomy_ht *st, char *key) {
-  return (float *) clomy_stget (st, key);
-}
-long *clomy_stget_long (clomy_ht *st, char *key) {
-  return (long *) clomy_stget (st, key);
-}
-double *clomy_stget_double (clomy_ht *st, char *key) {
-  return (double *) clomy_stget (st, key);
-}
-char *clomy_stget_char (clomy_ht *st, char *key) {
-  return (char *) clomy_stget (st, key);
-}
-short *clomy_stget_short (clomy_ht *st, char *key) {
-  return (short *) clomy_stget (st, key);
+short *
+clomy_stget_short (clomy_ht *st, char *key)
+{
+  return (short *)clomy_stget (st, key);
 }
 /**/
 
@@ -1490,7 +1620,7 @@ clomy_stringcpy (clomy_string *s)
   str->data = clomy_aralloc (s->ar, s->size + 1);
   str->ar = s->ar;
   str->size = s->size;
-  CLOMY_strcpy (str->data, s->data, sizeof(str->data));
+  CLOMY_strcpy (str->data, s->data, sizeof (str->data));
   return str;
 }
 
@@ -1554,9 +1684,9 @@ clomy_string_trim (clomy_string *s)
 {
   size_t a = 0, b = s->size - 1;
 
-  while (isspace ((U8) s->data[a]))
+  while (isspace ((U8)s->data[a]))
     ++a;
-  while (b > a && isspace ((U8) s->data[b]))
+  while (b > a && isspace ((U8)s->data[b]))
     --b;
 
   if (a > 0 || b < s->size)
@@ -1682,7 +1812,7 @@ int
 clomy_sbinsert (clomy_stringbuilder *sb, char *val, size_t i)
 {
   clomy_sbchunk *ptr = sb->head, *prev, *cnk;
-  int index = (int) i;
+  int index = (int)i;
   size_t len = strlen (val), offset;
 
   do
@@ -1690,7 +1820,7 @@ clomy_sbinsert (clomy_stringbuilder *sb, char *val, size_t i)
       if (index - (int)ptr->size < 0)
         break;
 
-      index -= (int) ptr->size;
+      index -= (int)ptr->size;
       ptr = ptr->next;
     }
   while (ptr);
@@ -1876,42 +2006,61 @@ clomy_sbfold (clomy_stringbuilder *sb)
 
 /*----------------------------------------------------------------------*/
 
-int clomy_max_int (int a, int b) {
+int
+clomy_max_int (int a, int b)
+{
   return a > b ? a : b;
 }
 
-int clomy_min_int (int a, int b) {
+int
+clomy_min_int (int a, int b)
+{
   return a < b ? a : b;
 }
-float clomy_max_float (float a, float b) {
+float
+clomy_max_float (float a, float b)
+{
   return a > b ? a : b;
 }
 
-float clomy_min_float (float a, float b) {
+float
+clomy_min_float (float a, float b)
+{
   return a < b ? a : b;
 }
-long clomy_max_long (long a, long b) {
+long
+clomy_max_long (long a, long b)
+{
   return a > b ? a : b;
 }
 
-long clomy_min_long (long a, long b) {
+long
+clomy_min_long (long a, long b)
+{
   return a < b ? a : b;
 }
-double clomy_max_double (double a, double b) {
+double
+clomy_max_double (double a, double b)
+{
   return a > b ? a : b;
 }
 
-double clomy_min_double (double a, double b) {
+double
+clomy_min_double (double a, double b)
+{
   return a < b ? a : b;
 }
-short clomy_max_short (short a, short b) {
+short
+clomy_max_short (short a, short b)
+{
   return a > b ? a : b;
 }
 
-short clomy_min_short (short a, short b) {
+short
+clomy_min_short (short a, short b)
+{
   return a < b ? a : b;
 }
-
 
 clomy_string *
 clomy_file_get_content (clomy_arena *ar, const char *file_path)
@@ -1929,13 +2078,15 @@ clomy_file_get_content (clomy_arena *ar, const char *file_path)
   clomy_sbinit (&sb, ar);
 
 #ifdef CLOMY_BACKEND_WINAPI
-  hFile = CreateFile (file_path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-  if (!hFile) return NULL;
+  hFile = CreateFile (file_path, GENERIC_READ, 0, NULL, OPEN_EXISTING,
+                      FILE_ATTRIBUTE_NORMAL, NULL);
+  if (!hFile)
+    return NULL;
 
-  while(!ReadFile(hFile, &ch, 1, &dwBytesRead, NULL) && dwBytesRead < 0)
+  while (!ReadFile (hFile, &ch, 1, &dwBytesRead, NULL) && dwBytesRead < 0)
     sbappendch (&sb, ch);
 
-  CloseHandle(hFile);
+  CloseHandle (hFile);
 #else
   file = fopen (file_path, "r");
   if (!file)

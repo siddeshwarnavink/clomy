@@ -1,12 +1,21 @@
-import jinja2
+import sys
 import shutil
 import subprocess
+
+import jinja2
 
 TYPES = ["int", "float", "long", "double", "char", "short"]
 NUM_TYPES = ["int", "float", "long", "double", "short"]
 
-TEMPLATE_FILE = "clomy.h.tmpl"
-OUTPUT_FILE = "clomy.h"
+if len(sys.argv) < 3:
+    print(f"Usage: {sys.argv[0]} <template_path> <output_path>",
+          file=sys.stderr)
+    print("Error: Missing arguments.", file=sys.stderr)
+    exit(1)
+
+
+TEMPLATE_FILE = sys.argv[1]
+OUTPUT_FILE = sys.argv[2]
 
 with open(TEMPLATE_FILE) as f:
     template_src = f.read()

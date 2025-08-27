@@ -31,7 +31,7 @@
   #define CLOMY_strcpy(dst, src, n) strcpy_s((dst), (n), (src))
   #define CLOMY_strncpy(dst, src, n, m) strncpy_s(dst, n, src, _TRUNCATE)
 #else
-  #define CLOMY_strncpy(dst, src, n) strncpy(dst, n, src)
+  #define CLOMY_strncpy(dst, src, n) strncpy(dst, src, n)
   #define CLOMY_strcpy(dst, src, n) strcpy((dst), (src))
 #endif /* CLOMY_BACKEND_WINAPI */
 
@@ -703,7 +703,6 @@ clomy_arfree (void *value)
     return;
 
   cnk = hdr->cnk;
-  /* cnk->size -= hdr->size + hdr_size; */
 
   hdr->magic = 0;
 
@@ -783,7 +782,6 @@ clomy_dacap (clomy_da *da, size_t capacity)
 void *
 clomy_daget (clomy_da *da, size_t i)
 {
-  // return da->data + i * da->data_size;
   return (char *)da->data + i * da->data_size;
 }
 
