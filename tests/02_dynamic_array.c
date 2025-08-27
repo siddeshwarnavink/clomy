@@ -4,7 +4,7 @@
 #endif
 
 #define CLOMY_IMPLEMENTATION
-#include "../clomy.h"
+#include "../build/clomy.h"
 
 typedef struct
 {

@@ -272,6 +272,8 @@ typedef struct clomy_ht clomy_ht;
   for (U32 __i = 0; __i < (t)->capacity; ++__i)                               \
     {                                                                         \
       clomy_{{h}}data *__data = (t)->data[__i];                               \
+      if (!__data) continue;                                                  \
+                                                                              \
       {{key}} = __data->key;                                                  \
       while (__data)                                                          \
         {                                                                     \

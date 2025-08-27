@@ -6,7 +6,7 @@
 #define CLOMY_BACKEND_WINAPI
 #endif
 
-#include "../clomy.h"
+#include "../build/clomy.h"
 
 int
 main ()

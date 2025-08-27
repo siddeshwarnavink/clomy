@@ -5,7 +5,7 @@
 
 #define CLOMY_IMPLEMENTATION
 #define CLOMY_STRINGBUILDER_CAPACITY 8
-#include "../clomy.h"
+#include "../build/clomy.h"
 
 int
 main ()
