@@ -1,4 +1,7 @@
-#include <stdio.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define CLOMY_BACKEND_WINAPI
+#endif
 
 #define CLOMY_IMPLEMENTATION
 #define CLOMY_STRINGBUILDER_CAPACITY 8

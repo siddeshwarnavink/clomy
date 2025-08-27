@@ -1,5 +1,11 @@
 #define CLOMY_IMPLEMENTATION
 #define CLOMY_ARENA_CAPACITY 64
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define CLOMY_BACKEND_WINAPI
+#endif
+
 #include "../clomy.h"
 
 int
