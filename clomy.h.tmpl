@@ -63,23 +63,23 @@ typedef signed long long S64;
 #ifndef CLOMY_TEST_DISABLE
 
 /* Utility to print error message. */
-#define CLOMY_FAIL(msg)                                                        \
-  do                                                                           \
-    {                                                                          \
-      fprintf (stderr, "%s:%d:0: Assertion failed: %s\n", __FILE__, __LINE__,  \
-               (msg));                                                         \
-      exit (1);                                                                \
-    }                                                                          \
+#define CLOMY_FAIL(msg)                                                       \
+  do                                                                          \
+    {                                                                         \
+      fprintf (stderr, "%s:%d:0: Assertion failed: %s\n", __FILE__, __LINE__, \
+               (msg));                                                        \
+      exit (1);                                                               \
+    }                                                                         \
   while (0);
 
 /* Utility to print error message if EXP is false. */
-#define CLOMY_FAILFALSE(exp, msg)                                              \
-  if (!(exp))                                                                  \
+#define CLOMY_FAILFALSE(exp, msg)                                             \
+  if (!(exp))                                                                 \
     CLOMY_FAIL ((msg));
 
 /* Utility to print error message if EXP is true. */
-#define CLOMY_FAILTRUE(exp, msg)                                               \
-  if ((exp))                                                                   \
+#define CLOMY_FAILTRUE(exp, msg)                                              \
+  if ((exp))                                                                  \
     CLOMY_FAIL ((msg));
 
 #else
@@ -125,7 +125,8 @@ typedef struct clomy_arena clomy_arena;
 
 clomy_archunk *_clomy_newarchunk (U32 size);
 
-clomy_arfree_block *_clomy_find_free_block (clomy_archunk *cnk, U32 needed_size,
+clomy_arfree_block *_clomy_find_free_block (clomy_archunk *cnk,
+                                            U32 needed_size,
                                             clomy_arfree_block **prev_ptr);
 
 void _clomy_remove_free_block (clomy_archunk *cnk, clomy_arfree_block *block,
@@ -168,42 +169,30 @@ int clomy_dagrow (clomy_da *da);
 
 /* Get Ith element of dynamic array. */
 void *clomy_daget (clomy_da *da, U32 i);
-inline int clomy_daget_int (clomy_da *da, U32 i);
-inline float clomy_daget_float (clomy_da *da, U32 i);
-inline long clomy_daget_long (clomy_da *da, U32 i);
-inline double clomy_daget_double (clomy_da *da, U32 i);
-inline char clomy_daget_char (clomy_da *da, U32 i);
-inline short clomy_daget_short (clomy_da *da, U32 i);
+{% for t in types -%}
+inline {{t}} clomy_daget_{{t}} (clomy_da *da, U32 i);
+{% endfor -%}
 /**/
 
 /* Append data at the end of dynamic array. */
 int clomy_daappend (clomy_da *da, void *data);
-inline int clomy_daappend_int (clomy_da *da, int data);
-inline int clomy_daappend_float (clomy_da *da, float data);
-inline int clomy_daappend_long (clomy_da *da, long data);
-inline int clomy_daappend_double (clomy_da *da, double data);
-inline int clomy_daappend_char (clomy_da *da, char data);
-inline int clomy_daappend_short (clomy_da *da, short data);
+{% for t in types -%}
+inline int clomy_daappend_{{t}} (clomy_da *da, {{t}} data);
+{% endfor -%}
 /**/
 
 /* Append data at the start of dynamic array.*/
 int clomy_dapush (clomy_da *da, void *data);
-inline int clomy_dapush_int (clomy_da *da, int data);
-inline int clomy_dapush_float (clomy_da *da, float data);
-inline int clomy_dapush_long (clomy_da *da, long data);
-inline int clomy_dapush_double (clomy_da *da, double data);
-inline int clomy_dapush_char (clomy_da *da, char data);
-inline int clomy_dapush_short (clomy_da *da, short data);
+{% for t in types -%}
+inline int clomy_dapush_{{t}} (clomy_da *da, {{t}} data);
+{% endfor -%}
 /**/
 
 /* Insert data at Ith position of dynamic array. */
 int clomy_dainsert (clomy_da *da, U32 i, void *data);
-inline int clomy_dainsert_int (clomy_da *da, U32 i, int data);
-inline int clomy_dainsert_float (clomy_da *da, U32 i, float data);
-inline int clomy_dainsert_long (clomy_da *da, U32 i, long data);
-inline int clomy_dainsert_double (clomy_da *da, U32 i, double data);
-inline int clomy_dainsert_char (clomy_da *da, U32 i, char data);
-inline int clomy_dainsert_short (clomy_da *da, U32 i, short data);
+{% for t in types -%}
+inline int clomy_dainsert_{{t}} (clomy_da *da, U32 i, {{t}} data);
+{% endfor -%}
 /**/
 
 /* Delete data at Ith position of dynamic array. */
@@ -211,42 +200,30 @@ void clomy_dadel (clomy_da *da, U32 i);
 
 /* Delete data at front of the dynamic array and returns the data. */
 void *clomy_dapop (clomy_da *da);
-inline int clomy_dapop_int (clomy_da *da);
-inline float clomy_dapop_float (clomy_da *da);
-inline long clomy_dapop_long (clomy_da *da);
-inline double clomy_dapop_double (clomy_da *da);
-inline char clomy_dapop_char (clomy_da *da);
-inline short clomy_dapop_short (clomy_da *da);
+{% for t in types -%}
+inline {{t}} clomy_dapop_{{t}} (clomy_da *da);
+{% endfor -%}
 /**/
 
 /* Get Ith element of dynamic array. */
 void *clomy_daget (clomy_da *da, U32 i);
-inline int clomy_daget_int (clomy_da *da, U32 i);
-inline float clomy_daget_float (clomy_da *da, U32 i);
-inline long clomy_daget_long (clomy_da *da, U32 i);
-inline double clomy_daget_double (clomy_da *da, U32 i);
-inline char clomy_daget_char (clomy_da *da, U32 i);
-inline short clomy_daget_short (clomy_da *da, U32 i);
+{% for t in types -%}
+inline {{t}} clomy_daget_{{t}} (clomy_da *da, U32 i);
+{% endfor -%}
 /**/
 
 /* Get first element of dynamic array. */
 void *clomy_dafirst (clomy_da *da);
-inline int clomy_dafirst_int (clomy_da *da);
-inline float clomy_dafirst_float (clomy_da *da);
-inline long clomy_dafirst_long (clomy_da *da);
-inline double clomy_dafirst_double (clomy_da *da);
-inline char clomy_dafirst_char (clomy_da *da);
-inline short clomy_dafirst_short (clomy_da *da);
+{% for t in types -%}
+inline {{t}} clomy_dafirst_{{t}} (clomy_da *da);
+{% endfor -%}
 /**/
 
 /* Get last element of dynamic array. */
 void *clomy_dalast (clomy_da *da);
-inline int clomy_dalast_int (clomy_da *da);
-inline float clomy_dalast_float (clomy_da *da);
-inline long clomy_dalast_long (clomy_da *da);
-inline double clomy_dalast_double (clomy_da *da);
-inline char clomy_dalast_char (clomy_da *da);
-inline short clomy_dalast_short (clomy_da *da);
+{% for t in types -%}
+inline {{t}} clomy_dalast_{{t}} (clomy_da *da);
+{% endfor -%}
 /**/
 
 /* Free the dynamic array. */
@@ -282,32 +259,22 @@ struct clomy_ht
 typedef struct clomy_ht clomy_ht;
 
 /* Loop through each item of hash table. */
-
-#define clomy_ht_foreach(t, body)                                              \
-  for (U32 __i = 0; __i < (t)->capacity; ++__i)                                \
-    {                                                                          \
-      clomy_htdata *__data = (t)->data[__i];                                   \
-      int key = __data->key;                                                   \
-      while (__data)                                                           \
-        {                                                                      \
-          body;                                                                \
-          __data = __data->next;                                               \
-        }                                                                      \
+{% for h in ["ht", "st"] -%}
+{% set key = "int key" if h=="ht" else "char *key"  %}
+#define clomy_{{h}}_foreach(t, body)                                          \
+  for (U32 __i = 0; __i < (t)->capacity; ++__i)                               \
+    {                                                                         \
+      clomy_{{h}}data *__data = (t)->data[__i];                               \
+      {{key}} = __data->key;                                                  \
+      while (__data)                                                          \
+        {                                                                     \
+          body;                                                               \
+          __data = __data->next;                                              \
+        }                                                                     \
     }
 /**/
+{% endfor -%}
 
-#define clomy_st_foreach(t, body)                                              \
-  for (U32 __i = 0; __i < (t)->capacity; ++__i)                                \
-    {                                                                          \
-      clomy_stdata *__data = (t)->data[__i];                                   \
-      char *key = __data->key;                                                 \
-      while (__data)                                                           \
-        {                                                                      \
-          body;                                                                \
-          __data = __data->next;                                               \
-        }                                                                      \
-    }
-/**/
 U32 _clomy_hash_int (clomy_ht *ht, U32 x);
 U32 _clomy_hash_str (clomy_ht *ht, char *x);
 
@@ -315,22 +282,13 @@ U32 _clomy_hash_str (clomy_ht *ht, char *x);
 int clomy_htinit (clomy_ht *ht, clomy_arena *ar, U32 capacity, U32 dsize);
 
 /* Put value in KEY in hash table. */
-
-int clomy_htput (clomy_ht *ht, int key, void *value);
-inline int clomy_htput_int (clomy_ht *table, int key, int val);
-inline int clomy_htput_float (clomy_ht *table, int key, float val);
-inline int clomy_htput_long (clomy_ht *table, int key, long val);
-inline int clomy_htput_double (clomy_ht *table, int key, double val);
-inline int clomy_htput_char (clomy_ht *table, int key, char val);
-inline int clomy_htput_short (clomy_ht *table, int key, short val);
-
-int clomy_stput (clomy_ht *st, char *key, void *value);
-inline int clomy_stput_int (clomy_ht *table, char *key, int val);
-inline int clomy_stput_float (clomy_ht *table, char *key, float val);
-inline int clomy_stput_long (clomy_ht *table, char *key, long val);
-inline int clomy_stput_double (clomy_ht *table, char *key, double val);
-inline int clomy_stput_char (clomy_ht *table, char *key, char val);
-inline int clomy_stput_short (clomy_ht *table, char *key, short val);
+{% for h in ["ht", "st"] -%}
+{% set key = "int key" if h=="ht" else "char *key"  %}
+int clomy_{{h}}put (clomy_ht *{{h}}, {{key}}, void *value);
+{% for t in types -%}
+inline int clomy_{{h}}put_{{t}} (clomy_ht *table, {{key}}, {{t}} val);
+{% endfor -%}
+{% endfor -%}
 /**/
 
 /* Set integer value 1 if key doesn't exist, increment it otherwise. */
@@ -338,22 +296,13 @@ inline int clomy_htinc_int (clomy_ht *ht, int key);
 inline int clomy_stinc_int (clomy_ht *ht, char *key);
 
 /* Get value for KEY Hash table. */
-
-void *clomy_htget (clomy_ht *ht, int key);
-inline int *clomy_htget_int (clomy_ht *ht, int key);
-inline float *clomy_htget_float (clomy_ht *ht, int key);
-inline long *clomy_htget_long (clomy_ht *ht, int key);
-inline double *clomy_htget_double (clomy_ht *ht, int key);
-inline char *clomy_htget_char (clomy_ht *ht, int key);
-inline short *clomy_htget_short (clomy_ht *ht, int key);
-
-void *clomy_stget (clomy_ht *st, char *key);
-inline int *clomy_stget_int (clomy_ht *st, char *key);
-inline float *clomy_stget_float (clomy_ht *st, char *key);
-inline long *clomy_stget_long (clomy_ht *st, char *key);
-inline double *clomy_stget_double (clomy_ht *st, char *key);
-inline char *clomy_stget_char (clomy_ht *st, char *key);
-inline short *clomy_stget_short (clomy_ht *st, char *key);
+{% for h in ["ht", "st"] -%}
+{% set key = "int key" if h=="ht" else "char *key"  %}
+void *clomy_{{h}}get (clomy_ht *{{h}}, {{key}});
+{% for t in types -%}
+inline {{t}} *clomy_{{h}}get_{{t}} (clomy_ht *{{h}}, {{key}});
+{% endfor -%}
+{% endfor -%}
 /**/
 
 /* Delete from hash table. */
@@ -446,17 +395,15 @@ void clomy_sbfold (clomy_stringbuilder *sb);
 /*----------------------------------------------------------------------*/
 
 /* Get the maximum value of A and B */
-inline int clomy_max_int (int a, int b);
-inline int clomy_max_float (float a, float b);
-inline int clomy_max_long (long a, long b);
-inline int clomy_max_double (double a, double b);
-inline int clomy_max_short (short a, short b);
+{% for t in num_types -%}
+inline int clomy_max_{{t}} ({{t}} a, {{t}} b);
+{% endfor -%}
+
 /* Get the minimum value of A and B */
-inline int clomy_min_int (int a, int b);
-inline int clomy_min_float (float a, float b);
-inline int clomy_min_long (long a, long b);
-inline int clomy_min_double (double a, double b);
-inline int clomy_min_short (short a, short b);
+{% for t in num_types -%}
+inline int clomy_min_{{t}} ({{t}} a, {{t}} b);
+{% endfor -%}
+
 /* Read entire file into single buffer. */
 clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 
@@ -478,103 +425,60 @@ clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 #define da clomy_da
 #define dainit clomy_dainit
 #define daget clomy_daget
-#define daget_int clomy_daget_int
-#define daget_float clomy_daget_float
-#define daget_long clomy_daget_long
-#define daget_double clomy_daget_double
-#define daget_char clomy_daget_char
-#define daget_short clomy_daget_short
+{% for t in types -%}
+#define daget_{{t}} clomy_daget_{{t}}
+{% endfor -%}
 #define dafirst clomy_dafirst
-#define dafirst_int clomy_dafirst_int
-#define dafirst_float clomy_dafirst_float
-#define dafirst_long clomy_dafirst_long
-#define dafirst_double clomy_dafirst_double
-#define dafirst_char clomy_dafirst_char
-#define dafirst_short clomy_dafirst_short
+{% for t in types -%}
+#define dafirst_{{t}} clomy_dafirst_{{t}}
+{% endfor -%}
 #define dalast clomy_dalast
-#define dalast_int clomy_dalast_int
-#define dalast_float clomy_dalast_float
-#define dalast_long clomy_dalast_long
-#define dalast_double clomy_dalast_double
-#define dalast_char clomy_dalast_char
-#define dalast_short clomy_dalast_short
+{% for t in types -%}
+#define dalast_{{t}} clomy_dalast_{{t}}
+{% endfor -%}
 #define dapush clomy_dapush
-#define dapush_int clomy_dapush_int
-#define dapush_float clomy_dapush_float
-#define dapush_long clomy_dapush_long
-#define dapush_double clomy_dapush_double
-#define dapush_char clomy_dapush_char
-#define dapush_short clomy_dapush_short
+{% for t in types -%}
+#define dapush_{{t}} clomy_dapush_{{t}}
+{% endfor -%}
 /**/
 #define daappend clomy_daappend
-#define daappend_int clomy_daappend_int
-#define daappend_float clomy_daappend_float
-#define daappend_long clomy_daappend_long
-#define daappend_double clomy_daappend_double
-#define daappend_char clomy_daappend_char
-#define daappend_short clomy_daappend_short
+{% for t in types -%}
+#define daappend_{{t}} clomy_daappend_{{t}}
+{% endfor -%}
 /**/
 #define dainsert clomy_dainsert
-#define dainsert_int clomy_dainsert_int
-#define dainsert_float clomy_dainsert_float
-#define dainsert_long clomy_dainsert_long
-#define dainsert_double clomy_dainsert_double
-#define dainsert_char clomy_dainsert_char
-#define dainsert_short clomy_dainsert_short
+{% for t in types -%}
+#define dainsert_{{t}} clomy_dainsert_{{t}}
+{% endfor -%}
 /**/
 
 #define dadel clomy_dadel
 #define dapop clomy_dapop
-#define dapop_int clomy_dapop_int
-#define dapop_float clomy_dapop_float
-#define dapop_long clomy_dapop_long
-#define dapop_double clomy_dapop_double
-#define dapop_char clomy_dapop_char
-#define dapop_short clomy_dapop_short
+{% for t in types -%}
+#define dapop_{{t}} clomy_dapop_{{t}}
+{% endfor -%}
 #define dafold clomy_dafold
 
 #define ht clomy_ht
 #define htdata clomy_htdata
 #define st_foreach clomy_st_foreach
 #define htinit clomy_htinit
-#define htput clomy_htput
-#define htput_int clomy_htput_int
-#define htput_float clomy_htput_float
-#define htput_long clomy_htput_long
-#define htput_double clomy_htput_double
-#define htput_char clomy_htput_char
-#define htput_short clomy_htput_short
+{% for h in ["ht", "st"] -%}
+#define {{h}}put clomy_{{h}}put
+{% for t in types -%}
+#define {{h}}put_{{t}} clomy_{{h}}put_{{t}}
+{% endfor -%}
 /**/
-#define htget clomy_htget
-#define htget_int clomy_htget_int
-#define htget_float clomy_htget_float
-#define htget_long clomy_htget_long
-#define htget_double clomy_htget_double
-#define htget_char clomy_htget_char
-#define htget_short clomy_htget_short
+#define {{h}}get clomy_{{h}}get
+{% for t in types -%}
+#define {{h}}get_{{t}} clomy_{{h}}get_{{t}}
+{% endfor -%}
 /**/
-#define htinc_int clomy_htinc_int
-#define htdel clomy_htdel
-#define htfold clomy_htfold
-#define stput clomy_stput
-#define stput_int clomy_stput_int
-#define stput_float clomy_stput_float
-#define stput_long clomy_stput_long
-#define stput_double clomy_stput_double
-#define stput_char clomy_stput_char
-#define stput_short clomy_stput_short
-/**/
-#define stget clomy_stget
-#define stget_int clomy_stget_int
-#define stget_float clomy_stget_float
-#define stget_long clomy_stget_long
-#define stget_double clomy_stget_double
-#define stget_char clomy_stget_char
-#define stget_short clomy_stget_short
-/**/
-#define stinc_int clomy_stinc_int
-#define stdel clomy_stdel
-#define stfold clomy_stfold
+#define {{h}}inc_int clomy_{{h}}inc_int
+#define {{h}}del clomy_{{h}}del
+#define {{h}}fold clomy_{{h}}fold
+{% endfor -%}
+
 #define string clomy_string
 #define stringcpy clomy_stringcpy
 #define string_lower clomy_string_lower
@@ -596,16 +500,10 @@ clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 #define sbfold clomy_sbfold
 #define sbreset clomy_sbreset
 
-#define max_int clomy_max_int
-#define min_int clomy_max_int
-#define max_float clomy_max_float
-#define min_float clomy_max_float
-#define max_long clomy_max_long
-#define min_long clomy_max_long
-#define max_double clomy_max_double
-#define min_double clomy_max_double
-#define max_short clomy_max_short
-#define min_short clomy_max_short
+{% for t in num_types -%}
+#define max_{{t}} clomy_max_{{t}}
+#define min_{{t}} clomy_max_{{t}}
+{% endfor -%}
 #define file_get_content clomy_file_get_content
 
 #endif /* not CLOMY_NO_SHORT_NAMES */
@@ -900,112 +798,37 @@ clomy_daget (clomy_da *da, U32 i)
   return da->data + i * da->data_size;
 }
 
-int
-clomy_daget_int (clomy_da *da, U32 i)
-{
-  return *(int *)clomy_daget (da, i);
+{% for t in types -%}
+{{t}} clomy_daget_{{t}} (clomy_da *da, U32 i) {
+  return *({{t}} *) clomy_daget (da, i);
 }
-float
-clomy_daget_float (clomy_da *da, U32 i)
-{
-  return *(float *)clomy_daget (da, i);
-}
-long
-clomy_daget_long (clomy_da *da, U32 i)
-{
-  return *(long *)clomy_daget (da, i);
-}
-double
-clomy_daget_double (clomy_da *da, U32 i)
-{
-  return *(double *)clomy_daget (da, i);
-}
-char
-clomy_daget_char (clomy_da *da, U32 i)
-{
-  return *(char *)clomy_daget (da, i);
-}
-short
-clomy_daget_short (clomy_da *da, U32 i)
-{
-  return *(short *)clomy_daget (da, i);
-}
+{% endfor -%}
 /**/
 
 void *
 clomy_dafirst (clomy_da *da)
 {
-  return clomy_daget (da, 0);
+  return clomy_daget(da, 0);
 }
 
-int
-clomy_dafirst_int (clomy_da *da)
-{
-  return *(int *)clomy_daget (da, 0);
+{% for t in types -%}
+{{t}} clomy_dafirst_{{t}} (clomy_da *da) {
+  return *({{t}} *) clomy_daget (da, 0);
 }
-float
-clomy_dafirst_float (clomy_da *da)
-{
-  return *(float *)clomy_daget (da, 0);
-}
-long
-clomy_dafirst_long (clomy_da *da)
-{
-  return *(long *)clomy_daget (da, 0);
-}
-double
-clomy_dafirst_double (clomy_da *da)
-{
-  return *(double *)clomy_daget (da, 0);
-}
-char
-clomy_dafirst_char (clomy_da *da)
-{
-  return *(char *)clomy_daget (da, 0);
-}
-short
-clomy_dafirst_short (clomy_da *da)
-{
-  return *(short *)clomy_daget (da, 0);
-}
+{% endfor -%}
 /**/
 
 void *
 clomy_dalast (clomy_da *da)
 {
-  return clomy_daget (da, da->size - 1);
+  return clomy_daget(da, da->size - 1);
 }
 
-int
-clomy_dalast_int (clomy_da *da)
-{
-  return *(int *)clomy_daget (da, da->size - 1);
+{% for t in types -%}
+{{t}} clomy_dalast_{{t}} (clomy_da *da) {
+  return *({{t}} *) clomy_daget (da, da->size - 1);
 }
-float
-clomy_dalast_float (clomy_da *da)
-{
-  return *(float *)clomy_daget (da, da->size - 1);
-}
-long
-clomy_dalast_long (clomy_da *da)
-{
-  return *(long *)clomy_daget (da, da->size - 1);
-}
-double
-clomy_dalast_double (clomy_da *da)
-{
-  return *(double *)clomy_daget (da, da->size - 1);
-}
-char
-clomy_dalast_char (clomy_da *da)
-{
-  return *(char *)clomy_daget (da, da->size - 1);
-}
-short
-clomy_dalast_short (clomy_da *da)
-{
-  return *(short *)clomy_daget (da, da->size - 1);
-}
+{% endfor -%}
 /**/
 
 int
@@ -1028,36 +851,11 @@ clomy_daappend (clomy_da *da, void *data)
   return 0;
 }
 
-int
-clomy_daappend_int (clomy_da *da, int data)
-{
-  return clomy_daappend (da, &data);
+{% for t in types -%}
+int clomy_daappend_{{t}} (clomy_da *da, {{t}} data) {
+  return clomy_daappend(da, &data);
 }
-int
-clomy_daappend_float (clomy_da *da, float data)
-{
-  return clomy_daappend (da, &data);
-}
-int
-clomy_daappend_long (clomy_da *da, long data)
-{
-  return clomy_daappend (da, &data);
-}
-int
-clomy_daappend_double (clomy_da *da, double data)
-{
-  return clomy_daappend (da, &data);
-}
-int
-clomy_daappend_char (clomy_da *da, char data)
-{
-  return clomy_daappend (da, &data);
-}
-int
-clomy_daappend_short (clomy_da *da, short data)
-{
-  return clomy_daappend (da, &data);
-}
+{% endfor -%}
 /**/
 
 int
@@ -1074,36 +872,11 @@ clomy_dapush (clomy_da *da, void *data)
   return 0;
 }
 
-int
-clomy_dapush_int (clomy_da *da, int data)
-{
-  return clomy_dapush (da, &(int){ data });
+{% for t in types -%}
+int clomy_dapush_{{t}} (clomy_da *da, {{t}} data) {
+  return clomy_dapush (da, &({{t}}){ data });
 }
-int
-clomy_dapush_float (clomy_da *da, float data)
-{
-  return clomy_dapush (da, &(float){ data });
-}
-int
-clomy_dapush_long (clomy_da *da, long data)
-{
-  return clomy_dapush (da, &(long){ data });
-}
-int
-clomy_dapush_double (clomy_da *da, double data)
-{
-  return clomy_dapush (da, &(double){ data });
-}
-int
-clomy_dapush_char (clomy_da *da, char data)
-{
-  return clomy_dapush (da, &(char){ data });
-}
-int
-clomy_dapush_short (clomy_da *da, short data)
-{
-  return clomy_dapush (da, &(short){ data });
-}
+{% endfor -%}
 /**/
 
 int
@@ -1125,36 +898,11 @@ clomy_dainsert (clomy_da *da, U32 i, void *data)
   return 0;
 }
 
-int
-clomy_dainsert_int (clomy_da *da, U32 i, int data)
-{
-  return clomy_dainsert (da, i, &(int){ data });
+{% for t in types -%}
+int clomy_dainsert_{{t}} (clomy_da *da, U32 i, {{t}} data) {
+  return clomy_dainsert (da, i, &({{t}}){ data });
 }
-int
-clomy_dainsert_float (clomy_da *da, U32 i, float data)
-{
-  return clomy_dainsert (da, i, &(float){ data });
-}
-int
-clomy_dainsert_long (clomy_da *da, U32 i, long data)
-{
-  return clomy_dainsert (da, i, &(long){ data });
-}
-int
-clomy_dainsert_double (clomy_da *da, U32 i, double data)
-{
-  return clomy_dainsert (da, i, &(double){ data });
-}
-int
-clomy_dainsert_char (clomy_da *da, U32 i, char data)
-{
-  return clomy_dainsert (da, i, &(char){ data });
-}
-int
-clomy_dainsert_short (clomy_da *da, U32 i, short data)
-{
-  return clomy_dainsert (da, i, &(short){ data });
-}
+{% endfor -%}
 /**/
 
 void
@@ -1175,36 +923,11 @@ clomy_dapop (clomy_da *da)
   return data;
 }
 
-int
-clomy_dapop_int (clomy_da *da)
-{
-  return *(int *)clomy_dapop (da);
+{% for t in types -%}
+{{t}} clomy_dapop_{{t}} (clomy_da *da) {
+  return *({{t}} *) clomy_dapop (da);
 }
-float
-clomy_dapop_float (clomy_da *da)
-{
-  return *(float *)clomy_dapop (da);
-}
-long
-clomy_dapop_long (clomy_da *da)
-{
-  return *(long *)clomy_dapop (da);
-}
-double
-clomy_dapop_double (clomy_da *da)
-{
-  return *(double *)clomy_dapop (da);
-}
-char
-clomy_dapop_char (clomy_da *da)
-{
-  return *(char *)clomy_dapop (da);
-}
-short
-clomy_dapop_short (clomy_da *da)
-{
-  return *(short *)clomy_dapop (da);
-}
+{% endfor -%}
 /**/
 
 void
@@ -1295,89 +1018,24 @@ clomy_htput (clomy_ht *ht, int key, void *value)
   return 0;
 }
 
-int
-clomy_htput_int (clomy_ht *table, int key, int val)
-{
-  return clomy_htput (table, key, &val);
+{% for h in ["ht", "st"] -%}
+{% set key = "int key" if h=="ht" else "char *key"  %}
+{% for t in types -%}
+int clomy_{{h}}put_{{t}} (clomy_ht *table, {{key}}, {{t}} val) {
+  return clomy_{{h}}put (table, key, &val);
 }
-int
-clomy_htput_float (clomy_ht *table, int key, float val)
-{
-  return clomy_htput (table, key, &val);
-}
-int
-clomy_htput_long (clomy_ht *table, int key, long val)
-{
-  return clomy_htput (table, key, &val);
-}
-int
-clomy_htput_double (clomy_ht *table, int key, double val)
-{
-  return clomy_htput (table, key, &val);
-}
-int
-clomy_htput_char (clomy_ht *table, int key, char val)
-{
-  return clomy_htput (table, key, &val);
-}
-int
-clomy_htput_short (clomy_ht *table, int key, short val)
-{
-  return clomy_htput (table, key, &val);
-}
+{% endfor -%}
 /**/
-int
-clomy_htinc_int (clomy_ht *ht, int key)
-{
-  int *ptr = clomy_htget (ht, key);
+int clomy_{{h}}inc_int (clomy_ht *{{h}}, {{key}}) {
+  int *ptr = clomy_{{h}}get ({{h}}, key);
   if (ptr)
-    return clomy_htput_int (ht, key, *ptr + 1);
+    return clomy_{{h}}put_int ({{h}}, key, *ptr + 1);
   else
-    return clomy_htput_int (ht, key, 1);
+    return clomy_{{h}}put_int ({{h}}, key, 1);
 }
 /**/
+{% endfor -%}
 
-int
-clomy_stput_int (clomy_ht *table, char *key, int val)
-{
-  return clomy_stput (table, key, &val);
-}
-int
-clomy_stput_float (clomy_ht *table, char *key, float val)
-{
-  return clomy_stput (table, key, &val);
-}
-int
-clomy_stput_long (clomy_ht *table, char *key, long val)
-{
-  return clomy_stput (table, key, &val);
-}
-int
-clomy_stput_double (clomy_ht *table, char *key, double val)
-{
-  return clomy_stput (table, key, &val);
-}
-int
-clomy_stput_char (clomy_ht *table, char *key, char val)
-{
-  return clomy_stput (table, key, &val);
-}
-int
-clomy_stput_short (clomy_ht *table, char *key, short val)
-{
-  return clomy_stput (table, key, &val);
-}
-/**/
-int
-clomy_stinc_int (clomy_ht *st, char *key)
-{
-  int *ptr = clomy_stget (st, key);
-  if (ptr)
-    return clomy_stput_int (st, key, *ptr + 1);
-  else
-    return clomy_stput_int (st, key, 1);
-}
-/**/
 int
 clomy_stput (clomy_ht *ht, char *key, void *value)
 {
@@ -1452,67 +1110,14 @@ clomy_stget (clomy_ht *ht, char *key)
   return NULL;
 }
 
-int *
-clomy_htget_int (clomy_ht *ht, int key)
-{
-  return (int *)clomy_htget (ht, key);
+{% for h in ["ht", "st"] -%}
+{% set key = "int key" if h=="ht" else "char *key"  %}
+{% for t in types -%}
+{{t}} *clomy_{{h}}get_{{t}} (clomy_ht *{{h}}, {{key}}) {
+  return ({{t}} *) clomy_{{h}}get ({{h}}, key);
 }
-float *
-clomy_htget_float (clomy_ht *ht, int key)
-{
-  return (float *)clomy_htget (ht, key);
-}
-long *
-clomy_htget_long (clomy_ht *ht, int key)
-{
-  return (long *)clomy_htget (ht, key);
-}
-double *
-clomy_htget_double (clomy_ht *ht, int key)
-{
-  return (double *)clomy_htget (ht, key);
-}
-char *
-clomy_htget_char (clomy_ht *ht, int key)
-{
-  return (char *)clomy_htget (ht, key);
-}
-short *
-clomy_htget_short (clomy_ht *ht, int key)
-{
-  return (short *)clomy_htget (ht, key);
-}
-
-int *
-clomy_stget_int (clomy_ht *st, char *key)
-{
-  return (int *)clomy_stget (st, key);
-}
-float *
-clomy_stget_float (clomy_ht *st, char *key)
-{
-  return (float *)clomy_stget (st, key);
-}
-long *
-clomy_stget_long (clomy_ht *st, char *key)
-{
-  return (long *)clomy_stget (st, key);
-}
-double *
-clomy_stget_double (clomy_ht *st, char *key)
-{
-  return (double *)clomy_stget (st, key);
-}
-char *
-clomy_stget_char (clomy_ht *st, char *key)
-{
-  return (char *)clomy_stget (st, key);
-}
-short *
-clomy_stget_short (clomy_ht *st, char *key)
-{
-  return (short *)clomy_stget (st, key);
-}
+{% endfor -%}
+{% endfor -%}
 /**/
 
 void
@@ -2054,61 +1659,15 @@ clomy_sbfold (clomy_stringbuilder *sb)
 
 /*----------------------------------------------------------------------*/
 
-int
-clomy_max_int (int a, int b)
-{
+{% for t in num_types -%}
+int clomy_max_{{t}} ({{t}} a, {{t}} b) {
   return a > b ? a : b;
 }
 
-int
-clomy_min_int (int a, int b)
-{
+int clomy_min_{{t}} ({{t}} a, {{t}} b) {
   return a < b ? a : b;
 }
-int
-clomy_max_float (float a, float b)
-{
-  return a > b ? a : b;
-}
-
-int
-clomy_min_float (float a, float b)
-{
-  return a < b ? a : b;
-}
-int
-clomy_max_long (long a, long b)
-{
-  return a > b ? a : b;
-}
-
-int
-clomy_min_long (long a, long b)
-{
-  return a < b ? a : b;
-}
-int
-clomy_max_double (double a, double b)
-{
-  return a > b ? a : b;
-}
-
-int
-clomy_min_double (double a, double b)
-{
-  return a < b ? a : b;
-}
-int
-clomy_max_short (short a, short b)
-{
-  return a > b ? a : b;
-}
-
-int
-clomy_min_short (short a, short b)
-{
-  return a < b ? a : b;
-}
+{% endfor %}
 
 clomy_string *
 clomy_file_get_content (clomy_arena *ar, const char *file_path)

@@ -1,8 +1,11 @@
 SUBDIRS = tests examples
 
-all: $(SUBDIRS)
+all: clomy.h $(SUBDIRS)
 
-$(SUBDIRS):
+clomy.h: clomy.h.tmpl
+	python gen.py
+
+$(SUBDIRS): clomy.h
 	$(MAKE) -C $@
 
 clean:

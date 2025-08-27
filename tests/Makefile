@@ -2,7 +2,7 @@ TESTS = $(patsubst %.c, %.out, $(wildcard *.c))
 
 all: $(TESTS)
 
-%.out: %.c
+%.out: %.c ../clomy.h
 	$(CC) -ggdb -Wall -Wextra -o $@ $(realpath $<)
 
 clean:
