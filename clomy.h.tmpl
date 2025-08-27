@@ -28,11 +28,25 @@
 #ifdef CLOMY_BACKEND_WINAPI
   #include <windows.h>
   static HANDLE CLOMY__heap = NULL;
-  #define CLOMY_strcpy(dst, src, n) strcpy_s((dst), (n), (src))
-  #define CLOMY_strncpy(dst, src, n, m) strncpy_s(dst, n, src, _TRUNCATE)
+
+  static inline char* CLOMY_strncpy_(char *dst, const char *src, size_t n) {
+    if (n == 0)
+      return dst;
+
+    size_t srclen = strlen(src);
+    size_t copylen = (srclen < n) ? srclen : n;
+
+    memcpy(dst, src, copylen);
+
+    if (copylen < n)
+      memset(dst + copylen, 0, n - copylen);
+
+    return dst;
+  }
+
+  #define CLOMY_strcpy(dst, src, n) CLOMY_strncpy_((dst), (src), (n))
 #else
-  #define CLOMY_strncpy(dst, src, n) strncpy(dst, src, n)
-  #define CLOMY_strcpy(dst, src, n) strcpy((dst), (src))
+  #define CLOMY_strcpy(dst, src, n) strncpy((dst), (src), (n))
 #endif /* CLOMY_BACKEND_WINAPI */
 
 #ifndef CLOMY_ARENA_CAPACITY
@@ -1037,7 +1051,7 @@ clomy_stput (clomy_ht *ht, char *key, void *value)
   if (!data->key)
     return 1;
 
-  CLOMY_strcpy (data->key, key, sizeof(data->key));
+  CLOMY_strcpy (data->key, key, keylen);
   data->next = NULL;
   memcpy (data->data, value, ht->data_size);
 
@@ -1222,7 +1236,7 @@ clomy_stringcpy (clomy_string *s)
   str->data = clomy_aralloc (s->ar, s->size + 1);
   str->ar = s->ar;
   str->size = s->size;
-  CLOMY_strcpy (str->data, s->data, sizeof(str->data));
+  CLOMY_strcpy (str->data, s->data, str->size);
   return str;
 }
 
@@ -1433,7 +1447,7 @@ clomy_sbinsert (clomy_stringbuilder *sb, char *val, size_t i)
       if (!cnk)
         return 1;
 
-      CLOMY_strncpy (cnk->data, val, len);
+      CLOMY_strcpy (cnk->data, val, len);
       cnk->size = len;
       cnk->next = ptr->next;
 
@@ -1449,7 +1463,7 @@ clomy_sbinsert (clomy_stringbuilder *sb, char *val, size_t i)
       if (!cnk)
         return 1;
 
-      CLOMY_strncpy (cnk->data, &val[offset], len - offset);
+      CLOMY_strcpy (cnk->data, &val[offset], len - offset);
       cnk->size = len - offset;
       cnk->next = ptr->next;
       ptr->next = cnk;
@@ -1459,12 +1473,12 @@ clomy_sbinsert (clomy_stringbuilder *sb, char *val, size_t i)
       if (!cnk)
         return 1;
 
-      CLOMY_strncpy (cnk->data, &((char *)prev->data)[index], offset);
+      CLOMY_strcpy (cnk->data, &((char *)prev->data)[index], offset);
       cnk->size = offset;
       cnk->next = ptr->next;
       ptr->next = cnk;
 
-      CLOMY_strncpy (&((char *)prev->data)[index], val, offset);
+      CLOMY_strcpy (&((char *)prev->data)[index], val, offset);
       sb->size += len;
     }
 
@@ -1481,7 +1495,7 @@ clomy_sbpush (clomy_stringbuilder *sb, char *val)
   if (!cnk)
     return 1;
 
-  CLOMY_strncpy (cnk->data, val, len);
+  CLOMY_strcpy (cnk->data, val, len);
 
   cnk->size = len;
   cnk->next = sb->head;
