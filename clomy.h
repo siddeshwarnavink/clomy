@@ -26,7 +26,7 @@
 #include <string.h>
 #include <time.h>
 
-#ifdef CLOMY_BACKEND_WINAPI
+#if defined(CLOMY_BACKEND_WINAPI)
 #include <windows.h>
 static HANDLE CLOMY__heap = NULL;
 
@@ -48,9 +48,15 @@ CLOMY_strncpy_ (char *dst, const char *src, size_t n)
 }
 
 #define CLOMY_strcpy(dst, src, n) CLOMY_strncpy_ ((dst), (src), (n))
+#elif defined(CLOMY_BACKEND_POSIX)
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+#define CLOMY_strcpy(dst, src, n) strncpy ((dst), (src), (n))
 #else
 #define CLOMY_strcpy(dst, src, n) strncpy ((dst), (src), (n))
-#endif /* CLOMY_BACKEND_WINAPI */
+#endif /* define(CLOMY_BACKEND_WINAPI) */
 
 #ifndef CLOMY_ARENA_CAPACITY
 #define CLOMY_ARENA_CAPACITY (8 * 1024)
@@ -302,15 +308,14 @@ typedef struct clomy_ht
 } clomy_ht;
 
 /* Loop through each item of hash table. */
-
-#define clomy_ht_foreach(t, body)                                              \
+#define clomy_ht_foreach(t, key, body)                                         \
   for (U32 __i = 0; __i < (t)->capacity; ++__i)                                \
     {                                                                          \
       clomy_htdata *__data = (t)->data[__i];                                   \
       if (!__data)                                                             \
         continue;                                                              \
                                                                                \
-      int key = __data->key;                                                   \
+      (key) = __data->key;                                                     \
       while (__data)                                                           \
         {                                                                      \
           body;                                                                \
@@ -318,15 +323,14 @@ typedef struct clomy_ht
         }                                                                      \
     }
 /**/
-
-#define clomy_st_foreach(t, body)                                              \
+#define clomy_st_foreach(t, key, body)                                         \
   for (U32 __i = 0; __i < (t)->capacity; ++__i)                                \
     {                                                                          \
       clomy_stdata *__data = (t)->data[__i];                                   \
       if (!__data)                                                             \
         continue;                                                              \
                                                                                \
-      char *key = __data->key;                                                 \
+      (key) = __data->key;                                                     \
       while (__data)                                                           \
         {                                                                      \
           body;                                                                \
@@ -630,16 +634,22 @@ _clomy_newarchunk (size_t size)
   size_t cnksize = sizeof (clomy_archunk) + size;
   clomy_archunk *cnk;
 
-#ifdef CLOMY_BACKEND_WINAPI
+#if defined(CLOMY_BACKEND_WINAPI)
   cnk = HeapAlloc (CLOMY__heap ? CLOMY__heap
                                : (CLOMY__heap = GetProcessHeap ()),
                    HEAP_ZERO_MEMORY, cnksize);
+#elif defined(CLOMY_BACKEND_POSIX)
+  cnk = mmap (NULL, cnksize, PROT_READ | PROT_WRITE,
+              MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+  if (cnk == MAP_FAILED)
+    return NULL;
 #else
   cnk = (clomy_archunk *)malloc (cnksize);
-#endif
+#endif /* defined(CLOMY_BACKEND_WINAPI) */
 
   if (!cnk)
-    return (clomy_archunk *)0;
+    return NULL;
 
   cnk->size = 0;
   cnk->capacity = size;
@@ -828,12 +838,14 @@ clomy_arfold (clomy_arena *ar)
   while (cnk)
     {
       next = cnk->next;
-#ifdef CLOMY_BACKEND_WINAPI
+#if defined(CLOMY_BACKEND_WINAPI)
       HeapFree (CLOMY__heap ? CLOMY__heap : (CLOMY__heap = GetProcessHeap ()),
                 0, cnk);
+#elif defined(CLOMY_BACKEND_POSIX)
+      munmap (cnk, sizeof (clomy_archunk) + cnk->capacity);
 #else
       free (cnk);
-#endif
+#endif /* defined(CLOMY_BACKEND_WINAPI) */
       cnk = next;
     }
 
@@ -2012,18 +2024,21 @@ clomy_string *
 clomy_file_get_content (clomy_arena *ar, const char *file_path)
 {
   stringbuilder sb = { 0 };
-#ifdef CLOMY_BACKEND_WINAPI
+#if defined(CLOMY_BACKEND_WINAPI)
   HANDLE hFile;
   DWORD dwBytesRead;
+#elif defined(CLOMY_BACKEND_POSIX)
+  int fd;
+  ssize_t bytes_read;
 #else
   FILE *file;
-#endif /* CLOMY_BACKEND_WINAPI */
+#endif /* defined(CLOMY_BACKEND_WINAPI) */
   clomy_string *res;
   char ch;
 
   clomy_sbinit (&sb, ar);
 
-#ifdef CLOMY_BACKEND_WINAPI
+#if defined(CLOMY_BACKEND_WINAPI)
   hFile = CreateFile (file_path, GENERIC_READ, 0, NULL, OPEN_EXISTING,
                       FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -2034,6 +2049,21 @@ clomy_file_get_content (clomy_arena *ar, const char *file_path)
     sbappendch (&sb, ch);
 
   CloseHandle (hFile);
+#elif defined(CLOMY_BACKEND_POSIX)
+  fd = open (file_path, O_RDONLY);
+  if (fd == -1)
+    return NULL;
+
+  while ((bytes_read = read (fd, &ch, 1)) > 0)
+    sbappendch (&sb, ch);
+
+  if (bytes_read == -1)
+    {
+      close (fd);
+      return NULL;
+    }
+
+  close (fd);
 #else
   file = fopen (file_path, "r");
   if (!file)
@@ -2043,7 +2073,7 @@ clomy_file_get_content (clomy_arena *ar, const char *file_path)
     sbappendch (&sb, ch);
 
   fclose (file);
-#endif /* CLOMY_BACKEND_WINAPI */
+#endif /* defined(CLOMY_BACKEND_WINAPI) */
 
   res = sbflush (&sb);
 

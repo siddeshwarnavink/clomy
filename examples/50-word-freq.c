@@ -1,10 +1,12 @@
 /* Program to find the maximum occurred word in a document. And report how many
    times it occurred. */
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #define CLOMY_BACKEND_WINAPI
-#endif
+#elif defined(_POSIX_VERSION)
+#define CLOMY_BACKEND_POSIX
+#endif /* defined(_WIN32) */
 
 #define CLOMY_IMPLEMENTATION
 #include "../build/clomy.h"
