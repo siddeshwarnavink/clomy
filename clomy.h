@@ -399,9 +399,12 @@ void clomy_stfold (clomy_ht *ht);
 typedef struct clomy_string
 {
   clomy_arena *ar;
-  size_t size; /* Size of string excluding null. */
-  char *data;  /* Null-terminated string. */
+  size_t size; /* Size of string excluding NULL. */
+  char *data;  /* NULL-terminated string. */
 } clomy_string;
+
+/* New string. */
+clomy_string *clomy_stringnew (clomy_arena *ar, const char *s);
 
 /* Copy string. */
 clomy_string *clomy_stringcpy (clomy_string *s);
@@ -415,13 +418,15 @@ void clomy_string_upper (clomy_string *s);
 /* Remove the first character of the string. */
 char clomy_string_chop_head (clomy_string *s);
 
-/* Split string by delimiter. */
-clomy_string *clomy_string_split_delim (clomy_string *s, char delim);
 /* Split string by space (default delimiter). */
+clomy_string *clomy_string_split_delim (clomy_string *s, char delim);
 inline clomy_string *clomy_string_split (clomy_string *s);
 
 /* Trim string. */
 void clomy_string_trim (clomy_string *s);
+
+/* Free string. */
+void clomy_stringfold (clomy_string *s);
 
 /*--------------------[ String Builder ]--------------------*/
 
@@ -590,6 +595,7 @@ clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 #define stdel clomy_stdel
 #define stfold clomy_stfold
 #define string clomy_string
+#define stringnew clomy_stringnew
 #define stringcpy clomy_stringcpy
 #define string_lower clomy_string_lower
 #define string_upper clomy_string_upper
@@ -597,6 +603,7 @@ clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 #define string_split_delim clomy_string_split_delim
 #define string_split clomy_string_split
 #define string_trim clomy_string_trim
+#define stringfold clomy_stringfold
 
 #define stringbuilder clomy_stringbuilder
 #define sbinit clomy_sbinit
@@ -610,16 +617,6 @@ clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 #define sbfold clomy_sbfold
 #define sbreset clomy_sbreset
 
-#define max_int clomy_max_int
-#define min_int clomy_max_int
-#define max_float clomy_max_float
-#define min_float clomy_max_float
-#define max_long clomy_max_long
-#define min_long clomy_max_long
-#define max_double clomy_max_double
-#define min_double clomy_max_double
-#define max_short clomy_max_short
-#define min_short clomy_max_short
 #define file_get_content clomy_file_get_content
 
 #endif /* not CLOMY_NO_SHORT_NAMES */
@@ -1624,7 +1621,26 @@ clomy_stfold (clomy_ht *ht)
 
 /*----------------------------------------------------------------------*/
 
-string *
+clomy_string *
+clomy_stringnew (clomy_arena *ar, const char *s)
+{
+  clomy_string *new = clomy_aralloc (ar, sizeof (clomy_string));
+  if (!new)
+    return NULL;
+
+  new->ar = ar;
+  new->size = strlen (s);
+
+  new->data = clomy_aralloc (ar, new->size + 1);
+  if (!new->data)
+    return NULL;
+
+  CLOMY_strcpy (new->data, s, new->size);
+
+  return new;
+}
+
+clomy_string *
 clomy_stringcpy (clomy_string *s)
 {
   string *str = clomy_aralloc (s->ar, sizeof (clomy_string));
@@ -1708,6 +1724,13 @@ clomy_string_trim (clomy_string *s)
       memmove (s->data, s->data + a, b - a + 1);
       s->data[b - a + 1] = '\0';
     }
+}
+
+void
+clomy_stringfold (clomy_string *s)
+{
+  arfree (s->data);
+  arfree (s);
 }
 
 /*----------------------------------------------------------------------*/
