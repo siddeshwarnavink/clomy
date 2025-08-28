@@ -1,13 +1,15 @@
 clomy.h
 ==========
 
-A header-only universal C library.
+A simple header-only C library for building cross-platform applications.
 
 Features:
   1. Arena
   2. Dynamic array
   3. Hash table
-  4. String builder
+  4. String & String builder
+  5. Assertions
+  6. Essential Cross-platform API
 
 To learn how to use this library I would recommend checking examples/ codes
 which is sorted in increasing complexity and detail explanation of the

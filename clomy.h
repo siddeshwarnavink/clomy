@@ -1,6 +1,6 @@
 /* clomy.h v1.0 - C library of my own - Siddeshwar
 
-   A header-only universal C library.
+   A simple header-only C library for building cross-platform applications.
 
    Features:
      1. Arena
@@ -8,6 +8,7 @@
      3. Hash table
      4. String & String builder
      5. Assertions
+     6. Essential Cross-platform API
 
    To use this library:
      #define CLOMY_IMPLEMENTATION
@@ -28,11 +29,27 @@
 #ifdef CLOMY_BACKEND_WINAPI
 #include <windows.h>
 static HANDLE CLOMY__heap = NULL;
-#define CLOMY_strcpy(dst, src, n) strcpy_s ((dst), (n), (src))
-#define CLOMY_strncpy(dst, src, n, m) strncpy_s (dst, n, src, _TRUNCATE)
+
+static inline char *
+CLOMY_strncpy_ (char *dst, const char *src, size_t n)
+{
+  if (n == 0)
+    return dst;
+
+  size_t srclen = strlen (src);
+  size_t copylen = (srclen < n) ? srclen : n;
+
+  memcpy (dst, src, copylen);
+
+  if (copylen < n)
+    memset (dst + copylen, 0, n - copylen);
+
+  return dst;
+}
+
+#define CLOMY_strcpy(dst, src, n) CLOMY_strncpy_ ((dst), (src), (n))
 #else
-#define CLOMY_strncpy(dst, src, n) strncpy (dst, src, n)
-#define CLOMY_strcpy(dst, src, n) strcpy ((dst), (src))
+#define CLOMY_strcpy(dst, src, n) strncpy ((dst), (src), (n))
 #endif /* CLOMY_BACKEND_WINAPI */
 
 #ifndef CLOMY_ARENA_CAPACITY
@@ -70,6 +87,8 @@ typedef signed short S16;
 typedef signed int S32;
 typedef signed long long S64;
 
+/*--------------------[ Assertion ]--------------------*/
+
 #ifndef CLOMY_TEST_DISABLE
 
 /* Utility to print error message. */
@@ -100,38 +119,34 @@ typedef signed long long S64;
 
 #endif /* not CLOMY_TEST_DISABLE */
 
-/*----------------------------------------------------------------------*/
+/*--------------------[ Arena ]--------------------*/
 
-struct clomy_arfree_block
+typedef struct clomy_arfree_block
 {
   size_t size;
   struct clomy_arfree_block *next;
-};
-typedef struct clomy_arfree_block clomy_arfree_block;
+} clomy_arfree_block;
 
-struct clomy_archunk
+typedef struct clomy_archunk
 {
   size_t size;
   size_t capacity;
   clomy_arfree_block *free_list;
   struct clomy_archunk *next;
   U8 data[];
-};
-typedef struct clomy_archunk clomy_archunk;
+} clomy_archunk;
 
-struct clomy_aralloc_hdr
+typedef struct clomy_aralloc_hdr
 {
   struct clomy_archunk *cnk;
   size_t size;
   U32 magic;
-};
-typedef struct clomy_aralloc_hdr clomy_aralloc_hdr;
+} clomy_aralloc_hdr;
 
-struct clomy_arena
+typedef struct clomy_arena
 {
   clomy_archunk *head, *tail;
-};
-typedef struct clomy_arena clomy_arena;
+} clomy_arena;
 
 clomy_archunk *_clomy_newarchunk (size_t size);
 
@@ -153,17 +168,16 @@ void clomy_arfree (void *value);
 /* Free the entire arena. */
 void clomy_arfold (clomy_arena *ar);
 
-/*----------------------------------------------------------------------*/
+/*--------------------[ Dynamic Array ]--------------------*/
 
-struct clomy_da
+typedef struct clomy_da
 {
   clomy_arena *ar;
   void *data;
   size_t data_size;
   size_t size;
   size_t capacity;
-};
-typedef struct clomy_da clomy_da;
+} clomy_da;
 
 /* Initialize the dynamic array in arena. */
 int clomy_dainit (clomy_da *da, clomy_arena *ar, size_t data_size,
@@ -261,25 +275,23 @@ inline short clomy_dalast_short (clomy_da *da);
 /* Free the dynamic array. */
 void clomy_dafold (clomy_da *da);
 
-/*----------------------------------------------------------------------*/
+/*--------------------[ Hash Table ]--------------------*/
 
-struct clomy_htdata
+typedef struct clomy_htdata
 {
   int key;
   struct clomy_htdata *next;
   U8 data[];
-};
-typedef struct clomy_htdata clomy_htdata;
+} clomy_htdata;
 
-struct clomy_stdata
+typedef struct clomy_stdata
 {
   char *key;
   struct clomy_stdata *next;
   U8 data[];
-};
-typedef struct clomy_stdata clomy_stdata;
+} clomy_stdata;
 
-struct clomy_ht
+typedef struct clomy_ht
 {
   clomy_arena *ar;
   void **data;
@@ -287,8 +299,7 @@ struct clomy_ht
   size_t size;
   size_t capacity;
   U32 a;
-};
-typedef struct clomy_ht clomy_ht;
+} clomy_ht;
 
 /* Loop through each item of hash table. */
 
@@ -379,15 +390,14 @@ void clomy_stdel (clomy_ht *ht, char *key);
 void clomy_htfold (clomy_ht *ht);
 void clomy_stfold (clomy_ht *ht);
 
-/*----------------------------------------------------------------------*/
+/*--------------------[ String ]--------------------*/
 
-struct clomy_string
+typedef struct clomy_string
 {
   clomy_arena *ar;
   size_t size; /* Size of string excluding null. */
   char *data;  /* Null-terminated string. */
-};
-typedef struct clomy_string clomy_string;
+} clomy_string;
 
 /* Copy string. */
 clomy_string *clomy_stringcpy (clomy_string *s);
@@ -409,24 +419,22 @@ inline clomy_string *clomy_string_split (clomy_string *s);
 /* Trim string. */
 void clomy_string_trim (clomy_string *s);
 
-/*----------------------------------------------------------------------*/
+/*--------------------[ String Builder ]--------------------*/
 
-struct clomy_sbchunk
+typedef struct clomy_sbchunk
 {
   size_t size;
   size_t capacity;
   struct clomy_sbchunk *next;
   char data[];
-};
-typedef struct clomy_sbchunk clomy_sbchunk;
+} clomy_sbchunk;
 
-struct clomy_stringbuilder
+typedef struct clomy_stringbuilder
 {
   clomy_arena *ar;
   size_t size;
   clomy_sbchunk *head, *tail;
-};
-typedef struct clomy_stringbuilder clomy_stringbuilder;
+} clomy_stringbuilder;
 
 /* Initialize string builder. */
 void clomy_sbinit (clomy_stringbuilder *sb, clomy_arena *ar);
@@ -458,24 +466,12 @@ void clomy_sbreset (clomy_stringbuilder *sb);
 /* Free the string builder. */
 void clomy_sbfold (clomy_stringbuilder *sb);
 
-/*----------------------------------------------------------------------*/
+/*--------------------[ Cross Platform API ]--------------------*/
 
-/* Get the maximum value of A and B */
-inline int clomy_max_int (int a, int b);
-inline float clomy_max_float (float a, float b);
-inline long clomy_max_long (long a, long b);
-inline double clomy_max_double (double a, double b);
-inline short clomy_max_short (short a, short b);
-/* Get the minimum value of A and B */
-inline int clomy_min_int (int a, int b);
-inline float clomy_min_float (float a, float b);
-inline long clomy_min_long (long a, long b);
-inline double clomy_min_double (double a, double b);
-inline short clomy_min_short (short a, short b);
 /* Read entire file into single buffer. */
 clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 
-/*----------------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
 
 #ifndef CLOMY_NO_SHORT_NAMES
 
@@ -1388,7 +1384,7 @@ clomy_stput (clomy_ht *ht, char *key, void *value)
   if (!data->key)
     return 1;
 
-  CLOMY_strcpy (data->key, key, sizeof (data->key));
+  CLOMY_strcpy (data->key, key, keylen);
   data->next = NULL;
   memcpy (data->data, value, ht->data_size);
 
@@ -1626,7 +1622,7 @@ clomy_stringcpy (clomy_string *s)
   str->data = clomy_aralloc (s->ar, s->size + 1);
   str->ar = s->ar;
   str->size = s->size;
-  CLOMY_strcpy (str->data, s->data, sizeof (str->data));
+  CLOMY_strcpy (str->data, s->data, str->size);
   return str;
 }
 
@@ -1837,7 +1833,7 @@ clomy_sbinsert (clomy_stringbuilder *sb, char *val, size_t i)
       if (!cnk)
         return 1;
 
-      CLOMY_strncpy (cnk->data, val, len);
+      CLOMY_strcpy (cnk->data, val, len);
       cnk->size = len;
       cnk->next = ptr->next;
 
@@ -1853,7 +1849,7 @@ clomy_sbinsert (clomy_stringbuilder *sb, char *val, size_t i)
       if (!cnk)
         return 1;
 
-      CLOMY_strncpy (cnk->data, &val[offset], len - offset);
+      CLOMY_strcpy (cnk->data, &val[offset], len - offset);
       cnk->size = len - offset;
       cnk->next = ptr->next;
       ptr->next = cnk;
@@ -1863,12 +1859,12 @@ clomy_sbinsert (clomy_stringbuilder *sb, char *val, size_t i)
       if (!cnk)
         return 1;
 
-      CLOMY_strncpy (cnk->data, &((char *)prev->data)[index], offset);
+      CLOMY_strcpy (cnk->data, &((char *)prev->data)[index], offset);
       cnk->size = offset;
       cnk->next = ptr->next;
       ptr->next = cnk;
 
-      CLOMY_strncpy (&((char *)prev->data)[index], val, offset);
+      CLOMY_strcpy (&((char *)prev->data)[index], val, offset);
       sb->size += len;
     }
 
@@ -1885,7 +1881,7 @@ clomy_sbpush (clomy_stringbuilder *sb, char *val)
   if (!cnk)
     return 1;
 
-  CLOMY_strncpy (cnk->data, val, len);
+  CLOMY_strcpy (cnk->data, val, len);
 
   cnk->size = len;
   cnk->next = sb->head;
@@ -2011,62 +2007,6 @@ clomy_sbfold (clomy_stringbuilder *sb)
 }
 
 /*----------------------------------------------------------------------*/
-
-int
-clomy_max_int (int a, int b)
-{
-  return a > b ? a : b;
-}
-
-int
-clomy_min_int (int a, int b)
-{
-  return a < b ? a : b;
-}
-float
-clomy_max_float (float a, float b)
-{
-  return a > b ? a : b;
-}
-
-float
-clomy_min_float (float a, float b)
-{
-  return a < b ? a : b;
-}
-long
-clomy_max_long (long a, long b)
-{
-  return a > b ? a : b;
-}
-
-long
-clomy_min_long (long a, long b)
-{
-  return a < b ? a : b;
-}
-double
-clomy_max_double (double a, double b)
-{
-  return a > b ? a : b;
-}
-
-double
-clomy_min_double (double a, double b)
-{
-  return a < b ? a : b;
-}
-short
-clomy_max_short (short a, short b)
-{
-  return a > b ? a : b;
-}
-
-short
-clomy_min_short (short a, short b)
-{
-  return a < b ? a : b;
-}
 
 clomy_string *
 clomy_file_get_content (clomy_arena *ar, const char *file_path)
