@@ -277,14 +277,13 @@ typedef struct clomy_ht
 
 /* Loop through each item of hash table. */
 {% for h in ["ht", "st"] -%}
-{% set key = "int key" if h=="ht" else "char *key"  %}
-#define clomy_{{h}}_foreach(t, body)                                          \
+#define clomy_{{h}}_foreach(t, key, body)                                     \
   for (U32 __i = 0; __i < (t)->capacity; ++__i)                               \
     {                                                                         \
       clomy_{{h}}data *__data = (t)->data[__i];                               \
       if (!__data) continue;                                                  \
                                                                               \
-      {{key}} = __data->key;                                                  \
+      (key) = __data->key;                                                    \
       while (__data)                                                          \
         {                                                                     \
           body;                                                               \
@@ -1625,12 +1624,14 @@ clomy_file_get_content (clomy_arena *ar, const char *file_path)
 #ifdef CLOMY_BACKEND_WINAPI
   hFile = CreateFile (file_path, GENERIC_READ, 0, NULL, OPEN_EXISTING,
       FILE_ATTRIBUTE_NORMAL, NULL);
-  if (!hFile) return NULL;
 
-  while(!ReadFile(hFile, &ch, 1, &dwBytesRead, NULL) && dwBytesRead < 0)
+  if (hFile == INVALID_HANDLE_VALUE)
+    return NULL;
+
+  while (ReadFile (hFile, &ch, 1, &dwBytesRead, NULL) && dwBytesRead > 0)
     sbappendch (&sb, ch);
 
-  CloseHandle(hFile);
+  CloseHandle (hFile);
 #else
   file = fopen (file_path, "r");
   if (!file)

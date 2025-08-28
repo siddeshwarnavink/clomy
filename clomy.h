@@ -2026,10 +2026,11 @@ clomy_file_get_content (clomy_arena *ar, const char *file_path)
 #ifdef CLOMY_BACKEND_WINAPI
   hFile = CreateFile (file_path, GENERIC_READ, 0, NULL, OPEN_EXISTING,
                       FILE_ATTRIBUTE_NORMAL, NULL);
-  if (!hFile)
+
+  if (hFile == INVALID_HANDLE_VALUE)
     return NULL;
 
-  while (!ReadFile (hFile, &ch, 1, &dwBytesRead, NULL) && dwBytesRead < 0)
+  while (ReadFile (hFile, &ch, 1, &dwBytesRead, NULL) && dwBytesRead > 0)
     sbappendch (&sb, ch);
 
   CloseHandle (hFile);
