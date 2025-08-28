@@ -1,7 +1,10 @@
-#include <stdio.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define CLOMY_BACKEND_WINAPI
+#endif
 
 #define CLOMY_IMPLEMENTATION
-#include "../clomy.h"
+#include "../build/clomy.h"
 
 int
 main ()

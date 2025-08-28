@@ -1,5 +1,10 @@
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define CLOMY_BACKEND_WINAPI
+#endif
+
 #define CLOMY_IMPLEMENTATION
-#include "../clomy.h"
+#include "../build/clomy.h"
 
 int
 main ()
@@ -10,11 +15,20 @@ main ()
   char *max_word;
   int max_count = 0, cur_count;
 
-  htinit (&wc, &ar, 16, sizeof (U32));
+  if (htinit (&wc, &ar, 16, sizeof (U32)) == 1)
+    {
+      printf ("Failed to initialize table.");
+      arfold (&ar);
+      return 1;
+    }
 
   poem = file_get_content (&ar, "poem.txt");
   if (!poem)
-    return 1;
+    {
+      printf ("Failed to open poem.txt");
+      arfold (&ar);
+      return 1;
+    }
 
   while ((word = string_split (poem)))
     {
