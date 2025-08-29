@@ -283,20 +283,14 @@ typedef struct clomy_ht
 
 /* Loop through each item of hash table. */
 {% for h in ["ht", "st"] -%}
-#define clomy_{{h}}_foreach(t, key, body)                                     \
+#define clomy_{{h}}_foreach(t, k, body)                                       \
   for (U32 __i = 0; __i < (t)->capacity; ++__i)                               \
+    for (clomy_{{h}}data *__data = (t)->data[__i]; __data;                    \
+        __data = __data->next)                                                \
     {                                                                         \
-      clomy_{{h}}data *__data = (t)->data[__i];                               \
-      if (!__data) continue;                                                  \
-                                                                              \
-      (key) = __data->key;                                                    \
-      while (__data)                                                          \
-        {                                                                     \
-          body;                                                               \
-          __data = __data->next;                                              \
-        }                                                                     \
+      (k) = __data->key;                                                      \
+      body                                                                    \
     }
-/**/
 {% endfor -%}
 
 U32 _clomy_hash_int (clomy_ht *ht, int x);
@@ -476,9 +470,9 @@ clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 
 #define ht clomy_ht
 #define htdata clomy_htdata
-#define st_foreach clomy_st_foreach
 #define htinit clomy_htinit
 {% for h in ["ht", "st"] -%}
+#define {{h}}_foreach clomy_{{h}}_foreach
 #define {{h}}put clomy_{{h}}put
 {% for t in types -%}
 #define {{h}}put_{{t}} clomy_{{h}}put_{{t}}

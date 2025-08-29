@@ -1,9 +1,9 @@
-#if defined(CLOMY_BACKEND_WINAPI)
+#if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #define CLOMY_BACKEND_WINAPI
-#elif defined(CLOMY_BACKEND_POSIX)
+#elif defined(_POSIX_VERSION)
 #define CLOMY_BACKEND_POSIX
-#endif
+#endif /* defined(_WIN32) */
 
 #define CLOMY_IMPLEMENTATION
 #include "../build/clomy.h"

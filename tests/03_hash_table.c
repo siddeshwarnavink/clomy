@@ -6,12 +6,22 @@
 #define CLOMY_IMPLEMENTATION
 #include "../build/clomy.h"
 
+#define CHECK_NUMBER(i)                                                       \
+  do                                                                          \
+    {                                                                         \
+      val = *((int *)htget (&nummap, (i)));                                   \
+      printf ("Value of %d is %d\n", (i), val);                               \
+      FAILFALSE (val == (i) * (i), "incorrect square value");                 \
+    }                                                                         \
+  while (0)
+
 int
 main ()
 {
   arena ar = { 0 };
   ht strmap = { 0 }, nummap = { 0 };
   U32 i;
+  int val;
 
   /* --------- Hash table with stirng key --------- */
   htinit (&strmap, &ar, 8, sizeof (int));
@@ -42,14 +52,15 @@ main ()
   printf ("Inserting in U32 key table...\n");
 
   for (i = 1; i <= 120; ++i)
-    {
-      if (i % 2 == 0)
-        htput_int (&nummap, i, i ^ 2);
-      else
-        htput (&nummap, i, &(int){ i ^ 2 });
-    }
+    htput (&nummap, i, &(int){ i * i });
 
   FAILFALSE (nummap.size == 120, "incorrect nummap size.");
+
+  CHECK_NUMBER (4);
+  CHECK_NUMBER (27);
+  CHECK_NUMBER (50);
+  CHECK_NUMBER (73);
+  CHECK_NUMBER (111);
 
   printf ("Folding U32 key table...\n");
   htfold (&nummap);

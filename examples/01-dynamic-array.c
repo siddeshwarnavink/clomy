@@ -1,11 +1,12 @@
 /* By default CLOMY uses LIBC as backend but you can change to platform
    specific for better performance. */
 
-/* Use native WINAPI on Windows. */
-#ifdef _WIN32
+#if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #define CLOMY_BACKEND_WINAPI
-#endif
+#elif defined(_POSIX_VERSION)
+#define CLOMY_BACKEND_POSIX
+#endif /* defined(_WIN32) */
 
 /* Adding this will magically include all the implementation. You don't need
    to link with anything. Make sure you only have this line in one central
