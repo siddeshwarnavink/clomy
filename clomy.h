@@ -464,6 +464,12 @@ void clomy_sbfold (clomy_stringbuilder *sb);
 /* Read entire file into single buffer. */
 clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 
+/* Create & Put string data into file. */
+int clomy_file_put_content (clomy_string *data, const char *file_path);
+
+/* Delete file. */
+int clomy_file_delete (const char *file_path);
+
 /*--------------------------------------------------------------*/
 
 #ifndef CLOMY_NO_SHORT_NAMES
@@ -603,6 +609,8 @@ clomy_string *clomy_file_get_content (clomy_arena *ar, const char *file_path);
 #define sbreset clomy_sbreset
 
 #define file_get_content clomy_file_get_content
+#define file_put_content clomy_file_put_content
+#define file_delete clomy_file_delete
 
 #endif /* not CLOMY_NO_SHORT_NAMES */
 
@@ -2086,6 +2094,76 @@ clomy_file_get_content (clomy_arena *ar, const char *file_path)
   res = sbflush (&sb);
 
   return res;
+}
+
+int
+clomy_file_put_content (clomy_string *data, const char *file_path)
+{
+#if defined(CLOMY_BACKEND_WINAPI)
+  HANDLE hFile;
+  DWORD dwBytesWritten;
+#elif defined(CLOMY_BACKEND_POSIX)
+  int fd;
+  ssize_t bytes_written;
+#else
+  FILE *file;
+#endif /* defined(CLOMY_BACKEND_WINAPI) */
+
+#if defined(CLOMY_BACKEND_WINAPI)
+  hFile = CreateFile (file_path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                      FILE_ATTRIBUTE_NORMAL, NULL);
+
+  if (hFile == INVALID_HANDLE_VALUE)
+    return 1;
+
+  if (!WriteFile (hFile, data->data, (DWORD)data->size, &dwBytesWritten, NULL)
+      || dwBytesWritten != data->size)
+    {
+      CloseHandle (hFile);
+      return 1;
+    }
+
+  CloseHandle (hFile);
+#elif defined(CLOMY_BACKEND_POSIX)
+  fd = open (file_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+  if (fd == -1)
+    return 1;
+
+  bytes_written = write (fd, data->data, data->size);
+  if (bytes_written == -1 || bytes_written != (ssize_t)data->size)
+    {
+      close (fd);
+      return 1;
+    }
+
+  close (fd);
+#else
+  file = fopen (file_path, "wb");
+  if (!file)
+    return 1;
+
+  if (fwrite (data->data, 1, data->size, file) != data->size)
+    {
+      fclose (file);
+      return 1;
+    }
+
+  fclose (file);
+#endif /* defined(CLOMY_BACKEND_WINAPI) */
+
+  return 0;
+}
+
+int
+clomy_file_delete (const char *file_path)
+{
+#if defined(CLOMY_BACKEND_WINAPI)
+  return DeleteFile (file_path) ? 0 : 1;
+#elif defined(CLOMY_BACKEND_POSIX)
+  return unlink (file_path) == 0 ? 0 : 1;
+#else
+  return remove (file_path) == 0 ? 0 : 1;
+#endif /* defined(CLOMY_BACKEND_WINAPI) */
 }
 
 #endif /* CLOMY_IMPLEMENTATION */
