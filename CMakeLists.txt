@@ -21,3 +21,11 @@ set(CLOMY_HEADER ${HEADER_GENERATED} CACHE INTERNAL "Path to clomy.h")
 
 add_subdirectory(tests)
 add_subdirectory(examples)
+
+add_custom_target(run-tests
+	COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/run_tests.cmake
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	COMMENT "Running all tests"
+	VERBATIM
+)
+add_dependencies(run-tests tests-all)
