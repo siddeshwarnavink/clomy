@@ -1,21 +1,23 @@
 /* clomy.h v1.0 - C library of my own - Siddeshwar
 
-   A simple header-only C library for building cross-platform applications.
+   A header-only universal C library that provide basic data structure.
 
    Features:
      1. Arena
      2. Dynamic array
      3. Hash table
      4. String & String builder
-     5. Assertions
-     6. Essential Cross-platform API
+     5. Tiny Assertions
 
    To use this library:
      #define CLOMY_IMPLEMENTATION
      #include "clomy.h"
 
    To add "clomy_" namespace prefix:
-     #define CLOMY_NO_SHORT_NAMES */
+     #define CLOMY_NO_SHORT_NAMES
+
+   By default, CLOMY uses platform native API. To prefer using LIBC
+     #define CLOMY_PREFER_LIBC */
 
 #ifndef CLOMY_H
 #define CLOMY_H
@@ -26,12 +28,14 @@
 #include <string.h>
 #include <time.h>
 
-#if defined(CLOMY_BACKEND_WINAPI)
+#if defined(CLOMY_PREFER_LIBC)
+#define CLOMY_strcpy(dst, src, n) strncpy ((dst), (src), (n))
+#else
+#if defined(_WIN32)
 #include <windows.h>
 static HANDLE CLOMY__heap = NULL;
-
 static inline char *
-CLOMY_strncpy_ (char *dst, const char *src, size_t n)
+CLOMY_strncpy_winapi (char *dst, const char *src, size_t n)
 {
   if (n == 0)
     return dst;
@@ -46,17 +50,16 @@ CLOMY_strncpy_ (char *dst, const char *src, size_t n)
 
   return dst;
 }
-
-#define CLOMY_strcpy(dst, src, n) CLOMY_strncpy_ ((dst), (src), (n))
-#elif defined(CLOMY_BACKEND_POSIX)
+#define CLOMY_strcpy(dst, src, n) CLOMY_strncpy_winapi ((dst), (src), (n))
+#elif defined(_POSIX_VERSION)
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
-
 #define CLOMY_strcpy(dst, src, n) strncpy ((dst), (src), (n))
 #else
 #define CLOMY_strcpy(dst, src, n) strncpy ((dst), (src), (n))
-#endif /* define(CLOMY_BACKEND_WINAPI) */
+#endif /* defined(_WIN32) */
+#endif /* define(CLOMY_PREFER_LIBC) */
 
 #ifndef CLOMY_ARENA_CAPACITY
 #define CLOMY_ARENA_CAPACITY (8 * 1024)
@@ -624,11 +627,11 @@ _clomy_newarchunk (size_t size)
   size_t cnksize = sizeof (clomy_archunk) + size;
   clomy_archunk *cnk;
 
-#if defined(CLOMY_BACKEND_WINAPI)
+#if defined(_WIN32)
   cnk = HeapAlloc (CLOMY__heap ? CLOMY__heap
                                : (CLOMY__heap = GetProcessHeap ()),
                    HEAP_ZERO_MEMORY, cnksize);
-#elif defined(CLOMY_BACKEND_POSIX)
+#elif defined(_POSIX_VERSION)
   cnk = mmap (NULL, cnksize, PROT_READ | PROT_WRITE,
               MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
@@ -828,10 +831,10 @@ clomy_arfold (clomy_arena *ar)
   while (cnk)
     {
       next = cnk->next;
-#if defined(CLOMY_BACKEND_WINAPI)
+#if defined(_WIN32)
       HeapFree (CLOMY__heap ? CLOMY__heap : (CLOMY__heap = GetProcessHeap ()),
                 0, cnk);
-#elif defined(CLOMY_BACKEND_POSIX)
+#elif defined(_POSIX_VERSION)
       munmap (cnk, sizeof (clomy_archunk) + cnk->capacity);
 #else
       free (cnk);
@@ -2032,138 +2035,6 @@ clomy_sbfold (clomy_stringbuilder *sb)
   sb->size = 0;
   sb->head = NULL;
   sb->tail = NULL;
-}
-
-/*----------------------------------------------------------------------*/
-
-clomy_string *
-clomy_file_get_content (clomy_arena *ar, const char *file_path)
-{
-  stringbuilder sb = { 0 };
-#if defined(CLOMY_BACKEND_WINAPI)
-  HANDLE hFile;
-  DWORD dwBytesRead;
-#elif defined(CLOMY_BACKEND_POSIX)
-  int fd;
-  ssize_t bytes_read;
-#else
-  FILE *file;
-#endif /* defined(CLOMY_BACKEND_WINAPI) */
-  clomy_string *res;
-  char ch;
-
-  clomy_sbinit (&sb, ar);
-
-#if defined(CLOMY_BACKEND_WINAPI)
-  hFile = CreateFile (file_path, GENERIC_READ, 0, NULL, OPEN_EXISTING,
-                      FILE_ATTRIBUTE_NORMAL, NULL);
-
-  if (hFile == INVALID_HANDLE_VALUE)
-    return NULL;
-
-  while (ReadFile (hFile, &ch, 1, &dwBytesRead, NULL) && dwBytesRead > 0)
-    sbappendch (&sb, ch);
-
-  CloseHandle (hFile);
-#elif defined(CLOMY_BACKEND_POSIX)
-  fd = open (file_path, O_RDONLY);
-  if (fd == -1)
-    return NULL;
-
-  while ((bytes_read = read (fd, &ch, 1)) > 0)
-    sbappendch (&sb, ch);
-
-  if (bytes_read == -1)
-    {
-      close (fd);
-      return NULL;
-    }
-
-  close (fd);
-#else
-  file = fopen (file_path, "r");
-  if (!file)
-    return NULL;
-
-  while ((ch = fgetc (file)) != EOF)
-    sbappendch (&sb, ch);
-
-  fclose (file);
-#endif /* defined(CLOMY_BACKEND_WINAPI) */
-
-  res = sbflush (&sb);
-
-  return res;
-}
-
-int
-clomy_file_put_content (clomy_string *data, const char *file_path)
-{
-#if defined(CLOMY_BACKEND_WINAPI)
-  HANDLE hFile;
-  DWORD dwBytesWritten;
-#elif defined(CLOMY_BACKEND_POSIX)
-  int fd;
-  ssize_t bytes_written;
-#else
-  FILE *file;
-#endif /* defined(CLOMY_BACKEND_WINAPI) */
-
-#if defined(CLOMY_BACKEND_WINAPI)
-  hFile = CreateFile (file_path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
-                      FILE_ATTRIBUTE_NORMAL, NULL);
-
-  if (hFile == INVALID_HANDLE_VALUE)
-    return 1;
-
-  if (!WriteFile (hFile, data->data, (DWORD)data->size, &dwBytesWritten, NULL)
-      || dwBytesWritten != data->size)
-    {
-      CloseHandle (hFile);
-      return 1;
-    }
-
-  CloseHandle (hFile);
-#elif defined(CLOMY_BACKEND_POSIX)
-  fd = open (file_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-  if (fd == -1)
-    return 1;
-
-  bytes_written = write (fd, data->data, data->size);
-  if (bytes_written == -1 || bytes_written != (ssize_t)data->size)
-    {
-      close (fd);
-      return 1;
-    }
-
-  close (fd);
-#else
-  file = fopen (file_path, "wb");
-  if (!file)
-    return 1;
-
-  if (fwrite (data->data, 1, data->size, file) != data->size)
-    {
-      fclose (file);
-      return 1;
-    }
-
-  fclose (file);
-#endif /* defined(CLOMY_BACKEND_WINAPI) */
-
-  return 0;
-}
-
-int
-clomy_file_delete (const char *file_path)
-{
-#if defined(CLOMY_BACKEND_WINAPI)
-  return DeleteFile (file_path) ? 0 : 1;
-#elif defined(CLOMY_BACKEND_POSIX)
-  return unlink (file_path) == 0 ? 0 : 1;
-#else
-  return remove (file_path) == 0 ? 0 : 1;
-#endif /* defined(CLOMY_BACKEND_WINAPI) */
 }
 
 #endif /* CLOMY_IMPLEMENTATION */
